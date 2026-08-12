@@ -1,7 +1,25 @@
 import os
 import discord
 from discord.ext import commands
+from flask import Flask
+from threading import Thread
 
+# --- خادم وهمي لمنع Render من المطالبة ببطاقة دفع ---
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is Alive!"
+
+def run():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# --- إعدادات البوت ---
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -15,30 +33,19 @@ async def on_ready():
 async def on_message(message):
     if message.author == bot.user:
         return
-
+    
     if 'العمدة' in message.content:
-        await message.channel.send('العمدة مشغول الان يجيك')
-
+        await message.channel.send('الان يجيك!')
+        
     await bot.process_commands(message)
 
 @bot.command(name='نبض')
 async def ping(ctx):
     latency = round(bot.latency * 1000)
-    await ctx.send(f'🟢 البوت شغال ومتصل! سرعة الاستجابة: {latency}ms')
+    await ctx.send(f'🏓 سرعة الاستجابة: {latency}ms')
 
-@bot.command(name='مساعدة')
-async def help_command(ctx):
-    help_text = (
-        "**قائمة الأوامر المتاحة:**\n"
-        "• `/نبض` - للتأكد من اتصال البوت وسرعة الاستجابة.\n"
-        "• `/مساعدة` - لعرض هذه القائمة.\n"
-        "• كتابة كلمة **العمدة** في الشات للرد التلقائي."
-    )
-    await ctx.send(help_text)
-
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-
+# تشغيل الخادم الوهمي ثم البوت
+keep_alive()
+TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
 if TOKEN:
     bot.run(TOKEN)
-else:
-    print("❌ خطأ: لم يتم العثور على DISCORD_BOT_TOKEN!")
