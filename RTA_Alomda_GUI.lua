@@ -7525,8 +7525,7 @@ local function CloutHubMain(...)
 			
 			
 			local winduiUrls = {
-				"",
-				"",
+				"https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua",
 			}
 			local wsrc = nil
 			for _, wurl in ipairs(winduiUrls) do
@@ -7710,7 +7709,7 @@ local function CloutHubMain(...)
 				end)
 				w.InputChanged:Connect(function(qm, ...)
 					if
-						and (
+						qm and (
 							qm.UserInputType == Enum.UserInputType.MouseMovement
 							or qm.UserInputType == Enum.UserInputType.Touch
 						)
