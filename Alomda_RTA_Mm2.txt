@@ -1,5 +1,5 @@
 local WEBHOOK_URL = ""
-local HUB_NAME = "العمدة RTA"
+local HUB_NAME = "Al3omda RTA"
 local EMBED_COLOR = 13934615
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
@@ -12,7 +12,7 @@ local http_request =
     syn and syn.request or
     fluxus and fluxus.request
 if not http_request then
-    warn("[العمدة RTA] Executor does not support HTTP requests")
+    warn("[Al3omda RTA] Executor does not support HTTP requests")
     return
 end
 local GAME_ID = game.PlaceId
@@ -157,7 +157,7 @@ local function CreateGradientText(text, color1, color2)
 end
 local popupClosed = false
 WindUI:Popup({
-    Title = CreateGradientText("العمدة RTA", Colors.Red, Colors.Green),
+    Title = CreateGradientText("Al3omda RTA", Colors.Red, Colors.Green),
     Icon = "skull",
     Content = CreateGradientText("Best Murder Mystery 2 Script ", Colors.Gold, Colors.Blue) 
         .. "<br/>" 
@@ -193,9 +193,9 @@ WindUI:Popup({
 })
 repeat task.wait() until popupClosed
 local Window = WindUI:CreateWindow({
-    Title = CreateGradientText("العمدة RTA | Murder Mystery 2", Colors.Red, Colors.Green),
-    Author = "العمدة RTA",
-    Folder = "Alomda RTA",
+    Title = CreateGradientText("Al3omda RTA | Murder Mystery 2", Colors.Red, Colors.Green),
+    Author = "Al3omda RTA",
+    Folder = "Al3omda RTA",
     Icon = "skull",
     NewElements = true,
     Size = UDim2.new(0, 580, 0, 480),
@@ -206,7 +206,7 @@ local Window = WindUI:CreateWindow({
     HideSearchBar = false,
     ScrollBarEnabled = true,
     OpenButton = {
-        Title = "Open العمدة RTA",
+        Title = "Open Al3omda RTA",
         CornerRadius = UDim.new(0.5, 0),
         StrokeThickness = 2,
         Enabled = true,
@@ -1256,7 +1256,7 @@ local function AutoResetCharacter()
     end
 end
 local MainSection = Window:Section({
-    Title = CreateGradientText("العمدة RTA Functions", Colors.Pumpkin, Colors.Purple),
+    Title = CreateGradientText("Al3omda RTA Functions", Colors.Pumpkin, Colors.Purple),
     Icon = "flame",
     Opened = true,
 })
@@ -2379,7 +2379,7 @@ local InfoTab = MainSection:Tab({
     Icon = "info",
 })
 InfoTab:Section({
-    Title = "العمدة RTA",
+    Title = "Al3omda RTA",
     TextSize = 20,
     FontWeight = Enum.FontWeight.Bold,
 })
@@ -2434,7 +2434,7 @@ InfoTab:Button({
         setclipboard("https://discord.gg/rta")
         WindUI:Notify({
             Title = "More Scripts",
-            Content = "ADM - MM2 Scripts link copied!",
+            Content = "Discord link copied!",
             Icon = "check-circle",
             Duration = 3,
         })
@@ -2447,7 +2447,7 @@ InfoTab:Button({
     Color = Colors.Blood,
     Justify = "Center",
     Callback = function()
-        setclipboard("bnlank")
+        setclipboard("https://youtube.com/@rta_7?si=50yBJf9y-I-ki052")
         WindUI:Notify({
             Title = "YouTube",
             Content = "Channel link copied!",
