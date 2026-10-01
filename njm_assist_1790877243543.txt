@@ -1,0 +1,303 @@
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+if CoreGui:FindFirstChild("ANCHubGui") then
+    CoreGui.ANCHubGui:Destroy()
+end
+
+local LocalPlayer = Players.LocalPlayer
+
+local ancHubGui = Instance.new("ScreenGui")
+ancHubGui.Name = "ANCHubGui"
+ancHubGui.ResetOnSpawn = false
+ancHubGui.Parent = CoreGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 240, 0, 215)
+mainFrame.Position = UDim2.new(0.5, -120, 0.4, -107)
+mainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+mainFrame.BackgroundTransparency = 0.05
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = ancHubGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 16)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(155, 89, 182)
+mainStroke.Transparency = 0.4
+mainStroke.Thickness = 2
+mainStroke.Parent = mainFrame
+
+local mainGradient = Instance.new("UIGradient")
+mainGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 30)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 12)),
+})
+mainGradient.Rotation = 45
+mainGradient.Parent = mainFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.Position = UDim2.new(0, 0, 0, 8)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "العمده RTA"
+titleLabel.RichText = true
+titleLabel.TextSize = 20
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Parent = mainFrame
+
+local discordInvite = "https://discord.gg/rta"
+local phantomLabel = Instance.new("TextButton")
+phantomLabel.Size = UDim2.new(1, 0, 0, 20)
+phantomLabel.Position = UDim2.new(0, 0, 0, 34)
+phantomLabel.BackgroundTransparency = 1
+phantomLabel.Text = discordInvite
+phantomLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+phantomLabel.TextSize = 14
+phantomLabel.Font = Enum.Font.GothamBold
+phantomLabel.AutoButtonColor = false
+phantomLabel.Parent = mainFrame
+
+phantomLabel.Activated:Connect(function()
+    local copied = false
+    if type(setclipboard) == "function" then
+        copied = pcall(setclipboard, discordInvite)
+    end
+
+    phantomLabel.Text = copied and "تم نسخ رابط الدسكورد" or "الرابط ظاهر — انسخه يدويًا"
+    task.delay(1.5, function()
+        if phantomLabel and phantomLabel.Parent then
+            phantomLabel.Text = discordInvite
+        end
+    end)
+end)
+
+task.spawn(function()
+    while phantomLabel and phantomLabel.Parent do
+        for hue = 0, 1, 0.008 do
+            if not phantomLabel or not phantomLabel.Parent then break end
+            phantomLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+            task.wait(0.05)
+        end
+    end
+end)
+
+local versionLabel = Instance.new("TextLabel")
+versionLabel.Size = UDim2.new(1, 0, 0, 18)
+versionLabel.Position = UDim2.new(0, 0, 0, 56)
+versionLabel.BackgroundTransparency = 1
+versionLabel.Text = "V3.3 Mobile"
+versionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+versionLabel.TextTransparency = 0.45
+versionLabel.TextSize = 12
+versionLabel.Font = Enum.Font.GothamMedium
+versionLabel.Parent = mainFrame
+
+local assistButton = Instance.new("TextButton")
+assistButton.Size = UDim2.new(0.85, 0, 0, 42)
+assistButton.Position = UDim2.new(0.075, 0, 0, 82)
+assistButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+assistButton.Text = "اسيست: غير مفعل"
+assistButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+assistButton.TextSize = 15
+assistButton.Font = Enum.Font.GothamSemibold
+assistButton.Parent = mainFrame
+
+local assistCorner = Instance.new("UICorner")
+assistCorner.CornerRadius = UDim.new(0, 10)
+assistCorner.Parent = assistButton
+
+local assistStroke = Instance.new("UIStroke")
+assistStroke.Color = Color3.fromRGB(60, 60, 70)
+assistStroke.Thickness = 1
+assistStroke.Parent = assistButton
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 0, 30)
+statusLabel.Position = UDim2.new(0, 0, 0, 155)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "الحالة: متوقف"
+statusLabel.TextColor3 = Color3.fromRGB(170, 170, 170)
+statusLabel.TextSize = 13
+statusLabel.Font = Enum.Font.GothamMedium
+statusLabel.Parent = mainFrame
+
+local notifyFrame = Instance.new("Frame")
+notifyFrame.Size = UDim2.new(0, 240, 0, 70)
+notifyFrame.Position = UDim2.new(0.5, -120, 0.72, 0)
+notifyFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+notifyFrame.BackgroundTransparency = 0.25
+notifyFrame.BorderSizePixel = 0
+notifyFrame.Visible = true
+notifyFrame.Parent = ancHubGui
+
+local notifyCorner = Instance.new("UICorner")
+notifyCorner.CornerRadius = UDim.new(0, 14)
+notifyCorner.Parent = notifyFrame
+
+local notifyStroke = Instance.new("UIStroke")
+notifyStroke.Color = Color3.fromRGB(46, 204, 113)
+notifyStroke.Transparency = 0.2
+notifyStroke.Thickness = 2
+notifyStroke.Parent = notifyFrame
+
+local notifyLabel = Instance.new("TextLabel")
+notifyLabel.Size = UDim2.new(1, 0, 1, 0)
+notifyLabel.BackgroundTransparency = 1
+notifyLabel.Text = "يالعيببب🙏🏻✈️"
+notifyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+notifyLabel.TextTransparency = 0.1
+notifyLabel.TextSize = 19
+notifyLabel.Font = Enum.Font.GothamBold
+notifyLabel.Parent = notifyFrame
+
+notifyFrame.Visible = false
+notifyFrame.BackgroundTransparency = 1
+notifyLabel.TextTransparency = 1
+notifyStroke.Transparency = 1
+
+local assistEnabled = false
+local notifyVisible = false
+local currentTarget = nil
+
+local function toggleNotification(show)
+    if show and not notifyVisible then
+        notifyVisible = true
+        notifyFrame.Visible = true
+        TweenService:Create(notifyFrame, TweenInfo.new(0.25), {
+            BackgroundTransparency = 0.25
+        }):Play()
+        TweenService:Create(notifyLabel, TweenInfo.new(0.25), {
+            TextTransparency = 0
+        }):Play()
+        TweenService:Create(notifyStroke, TweenInfo.new(0.25), {
+            Transparency = 0.2
+        }):Play()
+    elseif not show and notifyVisible then
+        notifyVisible = false
+        TweenService:Create(notifyFrame, TweenInfo.new(0.3), {
+            BackgroundTransparency = 1
+        }):Play()
+        TweenService:Create(notifyLabel, TweenInfo.new(0.3), {
+            TextTransparency = 1
+        }):Play()
+        TweenService:Create(notifyStroke, TweenInfo.new(0.3), {
+            Transparency = 1
+        }):Play()
+        task.delay(0.3, function()
+            if not notifyVisible and notifyFrame then
+                notifyFrame.Visible = false
+            end
+        end)
+    end
+end
+
+local function getNearestPlayer()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        return nil
+    end
+    local rootPart = character.HumanoidRootPart
+    local nearest = nil
+    local closestDist = math.huge
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer ~= LocalPlayer
+            and otherPlayer.Character
+            and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local otherHumanoid = otherPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if otherHumanoid and otherHumanoid.Health > 0 then
+                local dist = (rootPart.Position - otherPlayer.Character.HumanoidRootPart.Position).Magnitude
+                if dist < closestDist then
+                    closestDist = dist
+                    nearest = otherPlayer
+                end
+            end
+        end
+    end
+    return nearest
+end
+
+local function hasToolEquipped()
+    local character = LocalPlayer.Character
+    local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+    if character and character:FindFirstChildOfClass("Tool") then
+        return true
+    end
+    if backpack and backpack:FindFirstChildOfClass("Tool") then
+        return true
+    end
+    return false
+end
+
+assistButton.MouseButton1Click:Connect(function()
+    assistEnabled = not assistEnabled
+    toggleNotification(false)
+    if assistEnabled then
+        assistButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+        assistButton.Text = "اسيست: مفعل"
+        statusLabel.Text = "الحالة: مفعل"
+    else
+        assistButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        assistButton.Text = "اسيست: غير مفعل"
+        statusLabel.Text = "الحالة: متوقف"
+        currentTarget = nil
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not assistEnabled then
+        toggleNotification(false)
+        return
+    end
+
+    if not hasToolEquipped() then
+        statusLabel.Text = "الحالة: مو معك القنبله"
+        toggleNotification(false)
+        return
+    end
+
+    statusLabel.Text = "الحالة: مفعل"
+
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character.HumanoidRootPart
+    if not humanoid then return end
+
+    if currentTarget and currentTarget.Parent and currentTarget.Parent:FindFirstChild("Humanoid") then
+        local targetHumanoid = currentTarget.Parent.Humanoid
+        if targetHumanoid.Health <= 0 or (rootPart.Position - currentTarget.Position).Magnitude > 50 then
+            currentTarget = nil
+        end
+    else
+        currentTarget = nil
+    end
+
+    if not currentTarget then
+        local nearestPlayer = getNearestPlayer()
+        if nearestPlayer and nearestPlayer.Character then
+            currentTarget = nearestPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if currentTarget then
+                toggleNotification(true)
+                task.delay(1, function()
+                    toggleNotification(false)
+                end)
+            end
+        end
+    end
+
+    if currentTarget then
+        humanoid:MoveTo(currentTarget.Position)
+        local lookAt = Vector3.new(currentTarget.Position.X, rootPart.Position.Y, currentTarget.Position.Z)
+        rootPart.CFrame = CFrame.new(rootPart.Position, lookAt)
+    end
+end)
