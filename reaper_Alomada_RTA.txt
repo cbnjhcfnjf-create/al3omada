@@ -1,0 +1,3016 @@
+--[[
+    ═══════════════════════════════════════════════════════════════
+    🚗 REAPER CAR CONTROL + AUTO BUY + Z/X + AUTO SELL
+    ═══════════════════════════════════════════════════════════════
+--]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+local CoreGui = game:GetService("CoreGui")
+local Debris = game:GetService("Debris")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ═══════════════════════════════════════════════════════
+--  تحميل WindUI
+-- ═══════════════════════════════════════════════════════
+local A
+do
+    local ok, res = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+    end)
+    if ok and res then
+        A = res
+        print("[العمدة RTA] WindUI loaded")
+    else
+        pcall(function()
+            A = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/UI/WindUI"))()
+        end)
+    end
+end
+
+if not A then
+    warn("[العمدة RTA] WindUI failed")
+    return
+end
+
+local CONFIG = {
+    Title = "العمدة RTA",
+    Author = "العمدة RTA",
+    ImageId = "rbxassetid://134171679514822",
+}
+
+-- ═══════════════════════════════════════════════════════
+--  THEME (احمر + اسود)
+-- ═══════════════════════════════════════════════════════
+local DEFAULT_THEME = "العمدة RTA Black Red"
+
+local function Gradient(colors, rotation)
+    local points = {}
+    for position, color in pairs(colors) do
+        if type(color) == "table" then
+            points[position] = {
+                Color = Color3.fromHex(color.Color),
+                Transparency = color.Transparency or 0
+            }
+        else
+            points[position] = { Color = Color3.fromHex(color), Transparency = 0 }
+        end
+    end
+    return A:Gradient(points, { Rotation = rotation or 45 })
+end
+
+A:AddTheme({
+    Name = DEFAULT_THEME,
+    Accent = Gradient({ ["0"] = "#8B0000", ["50"] = "#FF2020", ["100"] = "#4A0000" }, 45),
+    Background = Gradient({
+        ["0"] = { Color = "#000000", Transparency = 0.05 },
+        ["50"] = { Color = "#0A0A0A", Transparency = 0.08 },
+        ["100"] = { Color = "#1A0000", Transparency = 0.10 },
+    }, 135),
+    Outline = Gradient({ ["0"] = "#8B0000", ["50"] = "#FF3030", ["100"] = "#600000" }, 90),
+    Button = Gradient({ ["0"] = "#0A0A0A", ["50"] = "#2A0000", ["100"] = "#000000" }, 90),
+    Text = Color3.fromHex("#FFFFFF"),
+    Placeholder = Color3.fromHex("#FF8080"),
+    Icon = Color3.fromHex("#FFFFFF"),
+})
+
+A:SetTheme(DEFAULT_THEME)
+
+-- ═══════════════════════════════════════════════════════
+--  اصوات
+-- ═══════════════════════════════════════════════════════
+local clickSound = Instance.new("Sound")
+clickSound.SoundId = "rbxassetid://6895079853"
+clickSound.Volume = 1
+clickSound.Parent = SoundService
+
+local hoverSound = Instance.new("Sound")
+hoverSound.SoundId = "rbxassetid://5236426395"
+hoverSound.Volume = 0.4
+hoverSound.Parent = SoundService
+
+local function playSound(sound, vol)
+    pcall(function()
+        local s = sound:Clone()
+        if vol then s.Volume = vol end
+        s.Parent = SoundService
+        s:Play()
+        Debris:AddItem(s, 2)
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════
+--  MAIN WINDOW
+-- ═══════════════════════════════════════════════════════
+local Window = A:CreateWindow({
+    Title = CONFIG.Title,
+    Icon = CONFIG.ImageId,
+    Author = CONFIG.Author,
+    Folder = "العمدة RTA free",
+    Size = UDim2.fromOffset(650, 500),
+    MinSize = Vector2.new(500, 400),
+    ToggleKey = Enum.KeyCode.F3,
+    Transparent = true,
+    Theme = DEFAULT_THEME,
+    Resizable = true,
+    SideBarWidth = 190,
+    HideSearchBar = true,
+    Acrylic = true,
+    Topbar = { Height = 50, ButtonsType = "Mac" },
+    OpenButton = {
+        Title = "العمدة RTA",
+        Icon = CONFIG.ImageId,
+        CornerRadius = UDim.new(1, 0),
+        Draggable = true,
+        Enabled = true,
+        Color = ColorSequence.new(Color3.fromRGB(0, 0, 0), Color3.fromRGB(200, 20, 20)),
+    },
+    User = {
+        Enabled = true,
+        Image = CONFIG.ImageId,
+        Callback = function()
+            A:Notify({ Title = "العمدة RTA", Content = player.Name, Duration = 3 })
+        end,
+    },
+})
+
+-- ═══════════════════════════════════════════════════════
+--  CAR CONTROL TAB
+-- ═══════════════════════════════════════════════════════
+local CarTab = Window:Tab({ Title = "سياره  CONTROL", Icon = "car" })
+CarTab:Section({ Title = "التحكم بالسيارة" })
+
+local CarControlEnabled = false
+local CarSpeed = 60
+local CarRotateSpeed = 3
+local Acceleration = 0.2
+local Deceleration = 0.05
+local RotationSmoothness = 5
+local RotateSpeedLimit = 0.05
+local LockHeightEnabled = true
+
+-- 🆕 Z/X
+local VerticalSpeed = 15
+local VerticalSmoothness = 8
+local currentVerticalVelocity = 0
+local heightOffset = 0
+
+local currentSeat = nil
+local currentPrimary = nil
+local controlConnection = nil
+local linearVelocity = nil
+local alignOrientation = nil
+local antiGravityForce = nil
+local att1, att2, att3
+
+local function StopCarControl()
+    CarControlEnabled = false
+    currentVerticalVelocity = 0
+    heightOffset = 0
+    
+    if controlConnection then controlConnection:Disconnect() controlConnection = nil end
+    if linearVelocity then linearVelocity:Destroy() linearVelocity = nil end
+    if alignOrientation then alignOrientation:Destroy() alignOrientation = nil end
+    if antiGravityForce then antiGravityForce:Destroy() antiGravityForce = nil end
+    if att1 then att1:Destroy() att1 = nil end
+    if att2 then att2:Destroy() att2 = nil end
+    if att3 then att3:Destroy() att3 = nil end
+    
+    currentPrimary = nil
+end
+
+local function StartCarControl(seat)
+    if not seat then return end
+    StopCarControl()
+    
+    CarControlEnabled = true
+    currentSeat = seat
+    local primaryPart = seat.AssemblyRootPart or seat
+    currentPrimary = primaryPart
+    local lockedY = primaryPart.Position.Y
+    
+    primaryPart.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5, 1, 1)
+    
+    att1 = Instance.new("Attachment") att1.Parent = primaryPart
+    att2 = Instance.new("Attachment") att2.Parent = primaryPart
+    att3 = Instance.new("Attachment") att3.Parent = primaryPart
+    
+    alignOrientation = Instance.new("AlignOrientation")
+    alignOrientation.Attachment0 = att1
+    alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+    alignOrientation.MaxTorque = 500000
+    alignOrientation.Responsiveness = 100
+    alignOrientation.RigidityEnabled = true
+    alignOrientation.PrimaryAxisOnly = false
+    alignOrientation.CFrame = CFrame.new(primaryPart.Position) 
+        * CFrame.Angles(0, math.atan2(-primaryPart.CFrame.LookVector.X, -primaryPart.CFrame.LookVector.Z), 0)
+    alignOrientation.Parent = primaryPart
+    
+    linearVelocity = Instance.new("LinearVelocity")
+    linearVelocity.Attachment0 = att2
+    linearVelocity.MaxForce = 100000
+    linearVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+    linearVelocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+    linearVelocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
+    linearVelocity.Parent = primaryPart
+    
+    antiGravityForce = Instance.new("VectorForce")
+    antiGravityForce.Attachment0 = att3
+    antiGravityForce.Force = Vector3.new(0, primaryPart.AssemblyMass * workspace.Gravity, 0)
+    antiGravityForce.RelativeTo = Enum.ActuatorRelativeTo.World
+    antiGravityForce.Parent = primaryPart
+    
+    local targetYaw = math.atan2(-primaryPart.CFrame.LookVector.X, -primaryPart.CFrame.LookVector.Z)
+    local currentYaw = targetYaw
+    local currentVelocity = Vector3.new(0, 0, 0)
+    local flipCheckCooldown = 0
+    
+    currentVerticalVelocity = 0
+    heightOffset = 0
+    
+    controlConnection = RunService.Heartbeat:Connect(function(dt)
+        if not CarControlEnabled then return end
+        if not primaryPart or not primaryPart.Parent then StopCarControl() return end
+        if not currentSeat or not currentSeat.Parent then StopCarControl() return end
+        
+        -- 🔄 اللف
+        local rotateInput = 0
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then rotateInput = rotateInput + 1 end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then rotateInput = rotateInput - 1 end
+        
+        if rotateInput ~= 0 then
+            targetYaw = targetYaw + rotateInput * CarRotateSpeed * dt
+        end
+        
+        local yawDiff = targetYaw - currentYaw
+        while yawDiff > math.pi do yawDiff = yawDiff - math.pi * 2 end
+        while yawDiff < -math.pi do yawDiff = yawDiff + math.pi * 2 end
+        
+        local yawStep = math.clamp(yawDiff * RotationSmoothness, -RotateSpeedLimit, RotateSpeedLimit)
+        currentYaw = currentYaw + yawStep
+        
+        -- 🆕 Z/X
+        local vInput = 0
+        if UserInputService:IsKeyDown(Enum.KeyCode.Z) then vInput = vInput + 1 end
+        if UserInputService:IsKeyDown(Enum.KeyCode.X) then vInput = vInput - 1 end
+        
+        local targetVVel = vInput * VerticalSpeed
+        currentVerticalVelocity = currentVerticalVelocity + 
+            (targetVVel - currentVerticalVelocity) * math.min(VerticalSmoothness * dt, 1)
+        
+        if math.abs(currentVerticalVelocity) > 0.1 then
+            heightOffset = heightOffset + currentVerticalVelocity * dt
+        end
+        
+        -- تثبيت السيارة
+        local pos = primaryPart.Position
+        local baseY = LockHeightEnabled and (lockedY + heightOffset) or pos.Y
+        local newCFrame = CFrame.new(pos.X, baseY, pos.Z) * CFrame.Angles(0, currentYaw, 0)
+        alignOrientation.CFrame = newCFrame
+        
+        -- 🚗 الحركة
+        local moveInput = 0
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveInput = moveInput + 1 end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveInput = moveInput - 1 end
+        
+        local forward = Vector3.new(newCFrame.LookVector.X, 0, newCFrame.LookVector.Z).Unit
+        
+        if moveInput ~= 0 then
+            local targetVel = forward * moveInput * CarSpeed
+            currentVelocity = currentVelocity:Lerp(targetVel, Acceleration)
+        else
+            currentVelocity = currentVelocity:Lerp(Vector3.new(0, 0, 0), Deceleration)
+            if currentVelocity.Magnitude < 0.5 then
+                currentVelocity = Vector3.new(0, 0, 0)
+            end
+        end
+        
+        if math.abs(rotateInput) > 0 then
+            currentVelocity = currentVelocity * 0.85
+        end
+        
+        linearVelocity.VectorVelocity = currentVelocity
+        
+        -- Anti-Flip
+        flipCheckCooldown = flipCheckCooldown + dt
+        if flipCheckCooldown >= 0.05 then
+            flipCheckCooldown = 0
+            local upVec = primaryPart.CFrame.UpVector
+            if math.abs(upVec.Y) < 0.7 then
+                primaryPart.CFrame = CFrame.new(pos.X, baseY, pos.Z) * CFrame.Angles(0, currentYaw, 0)
+                primaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                primaryPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                currentVelocity = Vector3.new(0, 0, 0)
+            end
+        end
+    end)
+    
+    A:Notify({ 
+        Title = "🚗 سيارة", 
+        Content = "التحكم شغال - Z فوق | X تحت", 
+        Duration = 2 
+    })
+end
+
+local function SetupCharacter(char)
+    local humanoid = char:WaitForChild("Humanoid", 5)
+    if not humanoid then return end
+    
+    humanoid.Seated:Connect(function(active, seat)
+        if active and seat and seat:IsA("VehicleSeat") then
+            local vehicle = seat:FindFirstAncestorOfClass("Model") or seat
+            A:Notify({ 
+                Title = "🚗", 
+                Content = "ركبت: " .. (vehicle.Name or "سيارة"), 
+                Duration = 2 
+            })
+            if CarControlEnabled then
+                StartCarControl(seat)
+            end
+        else
+            if controlConnection then StopCarControl() end
+        end
+    end)
+end
+
+if player.Character then SetupCharacter(player.Character) end
+player.CharacterAdded:Connect(SetupCharacter)
+
+-- ═══════════════════════════════════════════════════════
+--  عناصر التحكم
+-- ═══════════════════════════════════════════════════════
+
+CarTab:Toggle({
+    Title = "🚗 تفعيل التحكم بالسيارة",
+    Desc = "لما تركب سيارة التحكم يشتغل",
+    Default = false,
+    Callback = function(v)
+        if v then
+            local char = player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.SeatPart and hum.SeatPart:IsA("VehicleSeat") then
+                StartCarControl(hum.SeatPart)
+            else
+                CarControlEnabled = true
+                A:Notify({ Title = "🚗", Content = "اركب سيارة", Duration = 2 })
+            end
+        else
+            StopCarControl()
+            A:Notify({ Title = "🚗", Content = "التحكم مقفل", Duration = 2 })
+        end
+    end,
+})
+
+CarTab:Slider({
+    Title = "⚡ السرعة",
+    Step = 5,
+    Value = { Min = 10, Max = 300, Default = 60 },
+    Callback = function(v) CarSpeed = v end,
+})
+
+CarTab:Slider({
+    Title = "🔄 سرعة اللف",
+    Step = 0.5,
+    Value = { Min = 1, Max = 10, Default = 3 },
+    Callback = function(v) CarRotateSpeed = v end,
+})
+
+-- 🆕 قسم الارتفاع
+CarTab:Section({ Title = "⬆️⬇️ التحكم بالارتفاع (Z / X)" })
+
+CarTab:Slider({
+    Title = "⚡ سرعة الصعود/النزول",
+    Desc = "Z = فوق | X = تحت",
+    Step = 1,
+    Value = { Min = 5, Max = 100, Default = 15 },
+    Callback = function(v) VerticalSpeed = v end,
+})
+
+CarTab:Slider({
+    Title = "🌀 نعومة الحركة",
+    Step = 1,
+    Value = { Min = 1, Max = 20, Default = 8 },
+    Callback = function(v) VerticalSmoothness = v end,
+})
+
+CarTab:Button({
+    Title = "🔄 تصفير الارتفاع",
+    Callback = function()
+        heightOffset = 0
+        currentVerticalVelocity = 0
+        A:Notify({ Title = "⬆️⬇️", Content = "تم تصفير الارتفاع", Duration = 2 })
+    end,
+})
+
+CarTab:Section({ Title = "🛡️ حماية من الانفجار" })
+
+CarTab:Slider({
+    Title = "🚀 سرعة التسارع",
+    Step = 0.05,
+    Value = { Min = 0.05, Max = 1, Default = 0.2 },
+    Callback = function(v) Acceleration = v end,
+})
+
+CarTab:Slider({
+    Title = "🛑 سرعة التباطؤ",
+    Step = 0.01,
+    Value = { Min = 0.01, Max = 0.5, Default = 0.05 },
+    Callback = function(v) Deceleration = v end,
+})
+
+CarTab:Slider({
+    Title = "🌀 نعومة اللف",
+    Step = 0.5,
+    Value = { Min = 1, Max = 15, Default = 5 },
+    Callback = function(v) RotationSmoothness = v end,
+})
+
+CarTab:Slider({
+    Title = "🔒 حد سرعة اللف",
+    Step = 0.01,
+    Value = { Min = 0.01, Max = 0.2, Default = 0.05 },
+    Callback = function(v) RotateSpeedLimit = v end,
+})
+
+CarTab:Toggle({
+    Title = "📌 تثبيت الارتفاع",
+    Desc = "لازم شغال لـ Z/X",
+    Default = true,
+    Callback = function(v)
+        LockHeightEnabled = v
+    end,
+})
+
+CarTab:Section({ Title = "⚡ سرعات جاهزة" })
+
+CarTab:Button({
+    Title = "بطيء (30)",
+    Callback = function() CarSpeed = 30 A:Notify({ Title = "⚡", Content = "30", Duration = 1 }) end,
+})
+
+CarTab:Button({
+    Title = "عادي (60)",
+    Callback = function() CarSpeed = 60 A:Notify({ Title = "⚡", Content = "60", Duration = 1 }) end,
+})
+
+CarTab:Button({
+    Title = "سريع (120)",
+    Callback = function() CarSpeed = 120 A:Notify({ Title = "⚡", Content = "120", Duration = 1 }) end,
+})
+
+CarTab:Button({
+    Title = "جنوني (200)",
+    Callback = function() CarSpeed = 200 A:Notify({ Title = "⚡", Content = "200", Duration = 1 }) end,
+})
+
+CarTab:Button({
+    Title = "خارق (300)",
+    Callback = function() CarSpeed = 300 A:Notify({ Title = "⚡", Content = "300", Duration = 1 }) end,
+})
+
+CarTab:Section({ Title = "🛠️ أدوات" })
+
+CarTab:Button({
+    Title = "🔄 إعادة تفعيل",
+    Callback = function()
+        StopCarControl()
+        task.wait(0.3)
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum and hum.SeatPart and hum.SeatPart:IsA("VehicleSeat") then
+            StartCarControl(hum.SeatPart)
+            A:Notify({ Title = "🔄", Content = "تم التجديد", Duration = 2 })
+        else
+            CarControlEnabled = true
+            A:Notify({ Title = "🔄", Content = "اركب سيارة", Duration = 2 })
+        end
+    end,
+})
+
+CarTab:Button({
+    Title = "📊 حالة السيارة",
+    Callback = function()
+        if currentPrimary then
+            A:Notify({ 
+                Title = "🚗", 
+                Content = "السرعة: " .. CarSpeed .. " | الارتفاع: " .. string.format("%.1f", heightOffset),
+                Duration = 3 
+            })
+        else
+            A:Notify({ Title = "❌", Content = "ما فيه سيارة", Duration = 2 })
+        end
+    end,
+})
+
+CarTab:Button({
+    Title = "ℹ️ شرح الأزرار",
+    Callback = function()
+        A:Notify({ 
+            Title = "🎮 التحكم", 
+            Content = "W/S = حركة | A/D = لف | Z = فوق | X = تحت", 
+            Duration = 5 
+        })
+    end,
+})
+
+-- ═══════════════════════════════════════════════════════
+--  🛒 AUTO BUY TAB
+-- ═══════════════════════════════════════════════════════
+
+local BuyConfig = {
+    ItemName = "WormtecRegular",
+    Amount = 10,
+    Delay = 0.5,
+    Enabled = false,
+    EventName = "MopShopEvent",
+}
+
+local buyThread = nil
+local buyCount = 0
+
+local function getShopEvent()
+    local ev = ReplicatedStorage:FindFirstChild(BuyConfig.EventName)
+    if ev and ev:IsA("RemoteEvent") then
+        return ev
+    end
+    return nil
+end
+
+local function StopAutoBuy()
+    BuyConfig.Enabled = false
+    if buyThread then
+        pcall(function() task.cancel(buyThread) end)
+        buyThread = nil
+    end
+    A:Notify({
+        Title = "🛒 Auto Buy",
+        Content = "تم الإيقاف | العمليات: " .. buyCount,
+        Duration = 2
+    })
+end
+
+local function StartAutoBuy()
+    local ev = getShopEvent()
+    if not ev then
+        A:Notify({
+            Title = "❌ خطأ",
+            Content = "ما لقيت " .. BuyConfig.EventName,
+            Duration = 3
+        })
+        return
+    end
+    
+    BuyConfig.Enabled = true
+    buyCount = 0
+    
+    buyThread = task.spawn(function()
+        while BuyConfig.Enabled do
+            local ok, err = pcall(function()
+                ev:FireServer("BUY", BuyConfig.ItemName, BuyConfig.Amount)
+            end)
+            
+            buyCount = buyCount + 1
+            
+            if not ok then
+                warn("[AutoBuyer] Error:", err)
+                BuyConfig.Enabled = false
+                A:Notify({ Title = "❌ خطأ", Content = tostring(err), Duration = 3 })
+                break
+            end
+            
+            task.wait(BuyConfig.Delay)
+        end
+    end)
+    
+    A:Notify({
+        Title = "🛒 Auto Buy",
+        Content = "اشتغل | " .. BuyConfig.ItemName .. " x" .. BuyConfig.Amount,
+        Duration = 2
+    })
+end
+
+local BuyTab = Window:Tab({ Title = "AUTO BUY", Icon = "shopping-cart" })
+BuyTab:Section({ Title = "🛒 الشراء التلقائي" })
+
+BuyTab:Input({
+    Title = "اسم العنصر",
+    Value = BuyConfig.ItemName,
+    Placeholder = "WormtecRegular",
+    Callback = function(v) BuyConfig.ItemName = v end,
+})
+
+BuyTab:Input({
+    Title = "الكمية",
+    Value = tostring(BuyConfig.Amount),
+    Placeholder = "10",
+    Callback = function(v)
+        local num = tonumber(v)
+        if num and num > 0 then BuyConfig.Amount = math.floor(num) end
+    end,
+})
+
+BuyTab:Slider({
+    Title = "⏱️ التأخير",
+    Step = 0.1,
+    Value = { Min = 0.1, Max = 5, Default = BuyConfig.Delay },
+    Callback = function(v) BuyConfig.Delay = v end,
+})
+
+BuyTab:Input({
+    Title = "اسم الحدث",
+    Value = BuyConfig.EventName,
+    Placeholder = "MopShopEvent",
+    Callback = function(v) BuyConfig.EventName = v end,
+})
+
+BuyTab:Section({ Title = "🎛️ التحكم" })
+
+BuyTab:Toggle({
+    Title = "🚀 تفعيل الشراء التلقائي",
+    Default = false,
+    Callback = function(v)
+        if v then StartAutoBuy() else StopAutoBuy() end
+    end,
+})
+
+BuyTab:Button({
+    Title = "🛒 شراء مرة وحدة",
+    Callback = function()
+        local ev = getShopEvent()
+        if not ev then
+            A:Notify({ Title = "❌", Content = "ما لقيت الحدث", Duration = 2 })
+            return
+        end
+        
+        local ok = pcall(function()
+            ev:FireServer("BUY", BuyConfig.ItemName, BuyConfig.Amount)
+        end)
+        
+        A:Notify({
+            Title = ok and "✅ تم" or "❌ فشل",
+            Content = BuyConfig.ItemName .. " x" .. BuyConfig.Amount,
+            Duration = 2
+        })
+    end,
+})
+
+BuyTab:Button({
+    Title = "📊 حالة السكربت",
+    Callback = function()
+        local status = BuyConfig.Enabled and "🟢 شغال" or "🔴 متوقف"
+        A:Notify({
+            Title = "📊 الحالة",
+            Content = status .. " | العمليات: " .. buyCount,
+            Duration = 3
+        })
+    end,
+})
+
+-- ═══════════════════════════════════════════════════════
+--  💰 AUTO SELL TAB
+-- ═══════════════════════════════════════════════════════
+
+_G.AutoSellAll = false
+
+local SellTab = Window:Tab({ Title = "AUTO SELL", Icon = "coins" })
+SellTab:Section({ Title = "💰 البيع التلقائي" })
+
+SellTab:Toggle({
+    Title = "🔄 تفعيل البيع التلقائي",
+    Desc = "يبيع كل الأغراض والذهب والأسماك بشكل مستمر",
+    Default = false,
+    Callback = function(v)
+        _G.AutoSellAll = v
+        A:Notify({
+            Title = "💰 Auto Sell",
+            Content = v and "اشتغل ✅" or "توقف ❌",
+            Duration = 2
+        })
+    end,
+})
+
+SellTab:Button({
+    Title = "💰 بيع مرة وحدة",
+    Desc = "يبيع كل شي الحين",
+    Callback = function()
+        local sellEvent = ReplicatedStorage:FindFirstChild("SellShopEvent")
+        if not sellEvent then
+            A:Notify({ Title = "❌", Content = "ما لقيت SellShopEvent", Duration = 3 })
+            return
+        end
+        
+        local SellArguments = {"SellAll", "Sell All", "SellAllItems", "SellItems", "SellGold", "SellFish", "SellAllFish", "All"}
+        
+        pcall(function()
+            sellEvent:FireServer()
+            for _, arg in ipairs(SellArguments) do
+                sellEvent:FireServer(arg)
+                sellEvent:FireServer("Sell", arg)
+            end
+            if firesignal then
+                firesignal(sellEvent.OnClientEvent, "SELL_SUCCESS", 5)
+            end
+        end)
+        
+        A:Notify({ Title = "💰 تم", Content = "أرسل أمر البيع", Duration = 2 })
+    end,
+})
+
+-- 🔄 حلقة البيع التلقائي
+task.spawn(function()
+    local sellEvent = ReplicatedStorage:WaitForChild("SellShopEvent", 10)
+    if not sellEvent then
+        warn("[AutoSell] SellShopEvent not found")
+        return
+    end
+    
+    local SellArguments = {"SellAll", "Sell All", "SellAllItems", "SellItems", "SellGold", "SellFish", "SellAllFish", "All"}
+    
+    while task.wait(1) do 
+        if _G.AutoSellAll then
+            pcall(function()
+                sellEvent:FireServer()
+                for _, arg in ipairs(SellArguments) do
+                    sellEvent:FireServer(arg)
+                    sellEvent:FireServer("Sell", arg)
+                end
+                if firesignal then
+                    firesignal(sellEvent.OnClientEvent, "SELL_SUCCESS", 5)
+                end
+            end)
+        end
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════
+--  Hotkeys
+-- ═══════════════════════════════════════════════════════
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    
+    -- F4 = Auto Buy
+    if input.KeyCode == Enum.KeyCode.F4 then
+        if BuyConfig.Enabled then
+            StopAutoBuy()
+        else
+            StartAutoBuy()
+        end
+    end
+    
+    -- F5 = Auto Sell
+    if input.KeyCode == Enum.KeyCode.F5 then
+        _G.AutoSellAll = not _G.AutoSellAll
+        A:Notify({
+            Title = "💰 Auto Sell",
+            Content = _G.AutoSellAll and "اشتغل ✅ (F5)" or "توقف ❌ (F5)",
+            Duration = 2
+        })
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════
+--  SERVER TAB
+-- ═══════════════════════════════════════════════════════
+local ServerTab = Window:Tab({ Title = "SERVER", Icon = "server" })
+ServerTab:Section({ Title = "معلومات" })
+
+ServerTab:Button({
+    Title = "عدد اللاعبين",
+    Callback = function()
+        A:Notify({ Title = "السيرفر", Content = #Players:GetPlayers() .. " / " .. Players.MaxPlayers, Duration = 3 })
+    end,
+})
+
+ServerTab:Button({
+    Title = "نسخ Job ID",
+    Callback = function()
+        if setclipboard then
+            setclipboard(game.JobId)
+            A:Notify({ Title = "تم النسخ", Content = "Job ID", Duration = 2 })
+        end
+    end,
+})
+
+-- ═══════════════════════════════════════════════════════
+--  انيميشنات الواجهة
+-- ═══════════════════════════════════════════════════════
+local function findWindUIFrame()
+    for _, gui in ipairs(CoreGui:GetChildren()) do
+        if gui:IsA("ScreenGui") and string.find(gui.Name:lower(), "windui") then
+            return gui
+        end
+    end
+    for _, gui in ipairs(playerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") and string.find(gui.Name:lower(), "windui") then
+            return gui
+        end
+    end
+    return nil
+end
+
+task.spawn(function()
+    local timeout = 0
+    local windGui = findWindUIFrame()
+    while not windGui and timeout < 15 do
+        task.wait(0.5)
+        windGui = findWindUIFrame()
+        timeout = timeout + 0.5
+    end
+
+    if windGui then
+        for _, obj in ipairs(windGui:GetDescendants()) do
+            if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+                if not obj:GetAttribute("AnimAttached") then
+                    obj:SetAttribute("AnimAttached", true)
+                    local origSize = obj.Size
+
+                    obj.MouseEnter:Connect(function()
+                        playSound(hoverSound, 0.4)
+                        pcall(function()
+                            TweenService:Create(obj, TweenInfo.new(0.18), {
+                                Size = UDim2.new(origSize.X.Scale, origSize.X.Offset + 4,
+                                                 origSize.Y.Scale, origSize.Y.Offset + 2),
+                            }):Play()
+                        end)
+                    end)
+
+                    obj.MouseLeave:Connect(function()
+                        pcall(function()
+                            TweenService:Create(obj, TweenInfo.new(0.18), {
+                                Size = origSize,
+                            }):Play()
+                        end)
+                    end)
+
+                    obj.MouseButton1Down:Connect(function()
+                        playSound(clickSound, 1)
+                    end)
+                end
+            end
+        end
+        
+        task.spawn(function()
+            task.wait(2)
+            local reaperLabels = {}
+            for _, obj in ipairs(windGui:GetDescendants()) do
+                if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+                    local txt = obj.Text or ""
+                    if txt ~= "" and (string.find(txt, "العمدة RTA") or string.find(txt, "REAPER") or string.find(txt, "TikTok") 
+                        or string.find(txt, "df5.y") or string.find(txt, "Made by")) then
+                        table.insert(reaperLabels, obj)
+                    end
+                end
+            end
+
+            while windGui.Parent do
+                for _, lbl in ipairs(reaperLabels) do
+                    if lbl.Parent then
+                        pcall(function()
+                            TweenService:Create(lbl, TweenInfo.new(1.2, Enum.EasingStyle.Sine), {
+                                TextColor3 = Color3.fromRGB(255, 215, 0),
+                            }):Play()
+                        end)
+                    end
+                end
+                task.wait(1.2)
+
+                for _, lbl in ipairs(reaperLabels) do
+                    if lbl.Parent then
+                        pcall(function()
+                            TweenService:Create(lbl, TweenInfo.new(1.2, Enum.EasingStyle.Sine), {
+                                TextColor3 = Color3.fromRGB(30, 30, 30),
+                            }):Play()
+                        end)
+                    end
+                end
+                task.wait(1.2)
+            end
+        end)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════
+--  إشعار الترحيب
+-- ═══════════════════════════════════════════════════════
+task.wait(1)
+A:Notify({
+    Title = "العمدة RTA",
+    Content = "مرحبا " .. player.Name,
+    Duration = 3,
+})
+
+task.wait(0.5)
+A:Notify({
+    Title = "🎮 التحكم",
+    Content = "W/S حركة | A/D لف | Z فوق | X تحت | F3 قائمة | F4 AutoBuy | F5 AutoSell",
+    Duration = 6,
+})
+-- ═══════════════════════════════════════════════════════
+--  ⚡ قسم QTE Success (QTE TAB)
+-- ═══════════════════════════════════════════════════════
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+
+-- ═══ الإعدادات ═══
+_G.QTEEnabled = false
+local qteThread = nil
+local qteCount = 0
+local QTEDelay = 0.1
+local QTEArg = "Success"          -- 🆕 الوسيط المرسل
+local QTERemote = "QTERE"         -- 🆕 اسم الريموت
+local QTEParent = "Remotes"       -- 🆕 اسم الفولدر
+
+-- ═══ دالة جلب الحدث ═══
+local function getQTEEvent()
+    local folder = ReplicatedStorage:FindFirstChild(QTEParent)
+    if folder then
+        local qte = folder:FindFirstChild(QTERemote)
+        if qte and qte:IsA("RemoteEvent") then
+            return qte
+        end
+    end
+    return nil
+end
+
+-- ═══ دالة الإيقاف ═══
+local function StopQTE()
+    _G.QTEEnabled = false
+    if qteThread then
+        pcall(function() task.cancel(qteThread) end)
+        qteThread = nil
+    end
+    A:Notify({
+        Title = "⚡ QTE",
+        Content = "تم الإيقاف | العمليات: " .. qteCount,
+        Duration = 2
+    })
+end
+
+-- ═══ دالة البدء ═══
+local function StartQTE()
+    local ev = getQTEEvent()
+    if not ev then
+        A:Notify({
+            Title = "❌ خطأ",
+            Content = "ما لقيت " .. QTEParent .. "." .. QTERemote,
+            Duration = 3
+        })
+        return
+    end
+    
+    _G.QTEEnabled = true
+    qteCount = 0
+    
+    qteThread = task.spawn(function()
+        while _G.QTEEnabled do
+            local ok, err = pcall(function()
+                ev:FireServer(QTEArg)
+            end)
+            
+            qteCount = qteCount + 1
+            
+            if not ok then
+                warn("[QTE] Error:", err)
+                _G.QTEEnabled = false
+                A:Notify({
+                    Title = "❌ خطأ",
+                    Content = tostring(err),
+                    Duration = 3
+                })
+                break
+            end
+            
+            task.wait(QTEDelay)
+        end
+    end)
+    
+    A:Notify({
+        Title = " صيد Success",
+        Content = "اشتغل - العمليات التلقائية",
+        Duration = 2
+    })
+end
+
+-- ═══ إنشاء التاب ═══
+local QTETab = Window:Tab({ Title = "صيد", Icon = "zap" })
+
+-- ═══ قسم الإعدادات ═══
+QTETab:Section({ Title = " إعدادات صيد" })
+
+
+
+
+QTETab:Input({
+    Title = "📁 اسم الفولدر",
+    Desc = "Parent Folder Name",
+    Value = QTEParent,
+    Placeholder = "Remotes",
+    Callback = function(v)
+        QTEParent = v
+    end,
+})
+
+QTETab:Slider({
+    Title = "⏱️ التأخير بين الإرسال",
+    Desc = "Delay بالثواني",
+    Step = 0.05,
+    Value = { Min = 0.05, Max = 2, Default = 0.1 },
+    Callback = function(v)
+        QTEDelay = v
+    end,
+})
+
+-- ═══ قسم التحكم ═══
+QTETab:Section({ Title = " اعدادات الصيد" })
+
+QTETab:Toggle({
+    Title = "⚡ تفعيل صيد التلقائي",
+    Desc = "يرسل الأمر 2بشكل مست1مر",
+    Default = false,
+    Callback = function(v)
+        if v then
+            StartQTE()
+        else
+            StopQTE()
+        end
+    end,
+})
+
+QTETab:Button({
+    Title = " إرسال مرة وحدة",
+    Desc = "1 الأمر 1 واحدة",
+    Callback = function()
+        local ev = getQTEEvent()
+        if not ev then
+            A:Notify({
+                Title = "❌",
+                Content = "ما لقيت " .. QTEParent .. "." .. QTERemote,
+                Duration = 2
+            })
+            return
+        end
+        
+        local ok = pcall(function()
+            ev:FireServer(QTEArg)
+        end)
+        
+        A:Notify({
+            Title = ok and "✅ تم" or "❌ فشل",
+            Content = "QTE " .. QTEArg,
+            Duration = 2
+        })
+    end,
+})
+
+QTETab:Button({
+    Title = " حالة صيد",
+    Desc = "يعرض حالة صيد",
+    Callback = function()
+        local status = _G.QTEEnabled and "🟢 شغال" or "🔴 متوقف"
+        A:Notify({
+            Title = " صيد",
+            Content = status .. " | العمليات: " .. qteCount,
+            Duration = 3
+        })
+    end,
+})
+
+-- ═══ Hotkey F6 ═══
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.F6 then
+        if _G.QTEEnabled then
+            StopQTE()
+        else
+            StartQTE()
+        end
+    end
+end)-- ═══════════════════════════════════════════════════════
+--  🚗 SPAWN CAR + TELEPORT TO YOU
+-- ═══════════════════════════════════════════════════════
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Event = ReplicatedStorage:WaitForChild("SpawnCarEvent", 10)
+
+if not Event then
+    warn("[SpawnCar] Event not found")
+    return
+end
+
+-- ═══ الإعدادات ═══
+local Config = {
+    Distance = 10,         -- المسافة قدامك
+    Height = 2,            -- ارتفاع عن الأرض
+    AutoMove = true,       -- يخليها تتحرك معك
+    CheckDelay = 0.5,      -- كل كم ثانية يفحص
+}
+
+-- ═══ قائمة السيارات ═══
+local Cars = {
+    URUS = 12,
+    Stang = 84,
+    C8 = 3,
+    Hurricane = 2,
+    Station = 1,
+    Rezvani = 2,
+    HorseCars = 98,
+}
+
+-- ═══ متغيرات ═══
+local SpawnedCar = nil
+local MoveConnection = nil
+
+-- ═══ دالة جلب السيارة اللي spawnتها ═══
+local function FindSpawnedCar()
+    -- نبحث في workspace عن أقرب سيارة للاعب
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then
+        return nil
+    end
+    
+    local myPos = char.HumanoidRootPart.Position
+    local closest = nil
+    local closestDist = math.huge
+    
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.PrimaryPart then
+            -- نتحقق إن الاسم يحتوي على اسم سيارة
+            for carName, _ in pairs(Cars) do
+                if string.find(obj.Name, carName) then
+                    local dist = (obj.PrimaryPart.Position - myPos).Magnitude
+                    if dist < closestDist and dist < 500 then  -- ضمن 500 ستود
+                        closest = obj
+                        closestDist = dist
+                    end
+                end
+            end
+        end
+    end
+    
+    return closest
+end
+
+-- ═══ دالة نقل السيارة قدامك ═══
+local function MoveCarToMe(car)
+    if not car or not car.PrimaryPart then return end
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    -- الموقع قدام اللاعب
+    local targetPos = root.Position + (root.CFrame.LookVector * Config.Distance) + Vector3.new(0, Config.Height, 0)
+    
+    -- نستخدم PivotTo عشان ننقل الموديل كامل
+    pcall(function()
+        car:PivotTo(CFrame.new(targetPos))
+    end)
+end
+
+-- ═══ دالة بدء المتابعة ═══
+local function StartFollow()
+    if MoveConnection then MoveConnection:Disconnect() end
+    
+    MoveConnection = RunService.Heartbeat:Connect(function()
+        if not Config.AutoMove then return end
+        if SpawnedCar and SpawnedCar.Parent then
+            MoveCarToMe(SpawnedCar)
+        end
+    end)
+end
+
+-- ═══ دالة السحب ═══
+local function PullCar()
+    local car = FindSpawnedCar()
+    if not car then
+        print("[SpawnCar] ما لقيت سيارة")
+        return false
+    end
+    
+    SpawnedCar = car
+    MoveCarToMe(car)
+    StartFollow()
+    
+    print("[SpawnCar]  تم سحب السيارة: " .. car.Name)
+    return true
+end
+
+-- ═══ دالة الإيقاف ═══
+local function StopPull()
+    if MoveConnection then
+        MoveConnection:Disconnect()
+        MoveConnection = nil
+    end
+    SpawnedCar = nil
+end
+
+-- ═══ ربط مع WindUI ═══
+local CarTab = Window:Tab({ Title = "السيارات", Icon = "car" })
+CarTab:Section({ Title = " سحب السيارة" })
+
+CarTab:Toggle({
+    Title = " سحب السيارة قدامك",
+    Desc = "يخلي السيارة تلاحقك",
+    Default = false,
+    Callback = function(v)
+        if v then
+            if PullCar() then
+                A:Notify({
+                    Title = " تم",
+                    Content = "السيارة تلاحقك",
+                    Duration = 2
+                })
+            else
+                A:Notify({
+                    Title = "",
+                    Content = "ما لقيت سيارة قريبة",
+                    Duration = 3
+                })
+            end
+        else
+            StopPull()
+            A:Notify({
+                Title = "",
+                Content = "تم الإيقاف",
+                Duration = 2
+            })
+        end
+    end,
+})
+
+CarTab:Button({
+    Title = " سحب مرة وحدة",
+    Desc = "يسحب السيارة قدامك",
+    Callback = function()
+        local car = FindSpawnedCar()
+        if car then
+            MoveCarToMe(car)
+            A:Notify({
+                Title = "",
+                Content = "تم السحب: " .. car.Name,
+                Duration = 2
+            })
+        else
+            A:Notify({
+                Title = "",
+                Content = "ما لقيت سيارة",
+                Duration = 2
+            })
+        end
+    end,
+})
+
+CarTab:Slider({
+    Title = " المسافة",
+    Desc = "كم ستود قدامك",
+    Step = 1,
+    Value = { Min = 3, Max = 50, Default = 10 },
+    Callback = function(v)
+        Config.Distance = v
+    end,
+})
+
+CarTab:Slider({
+    Title = " الارتفاع",
+    Step = 1,
+    Value = { Min = 0, Max = 20, Default = 2 },
+    Callback = function(v)
+        Config.Height = v
+    end,
+})
+
+-- ═══ أزرار اختيار السيارة ═══
+CarTab:Section({ Title = " اختيار السيارة" })
+
+for carName, count in pairs(Cars) do
+    CarTab:Button({
+        Title = carName .. " (" .. count .. ")",
+        Callback = function()
+            pcall(function()
+                firesignal(Event.OnClientEvent, "INIT_DATA", Cars, carName)
+            end)
+            A:Notify({
+                Title = "",
+                Content = "اخترت: " .. carName,
+                Duration = 2
+            })
+            -- ننتظر شوي عشان السيارة spawn
+            task.wait(1)
+            PullCar()
+        end,
+    })
+end-- ═══════════════════════════════════════════════════════
+--  🔧 REPAIR CAR TAB (إصلاح السيارة)
+-- ═══════════════════════════════════════════════════════
+
+local RepairTab = Window:Tab({ Title = "إصلاح السيارة", Icon = "wrench" })
+
+RepairTab:Section({ Title = "🔧 إصلاح تلقائي للسيارات" })
+
+-- ═══ الإعدادات ═══
+local RepairConfig = {
+    EventName  = "RepairCarEvent",
+    CarName    = "Hurricane",
+    Delay      = 1,
+    Enabled    = false,
+    AutoSpawn  = false,
+}
+
+local repairThread = nil
+local repairCount  = 0
+
+-- ═══ دالة جلب الحدث ═══
+local function getRepairEvent()
+    local ev = ReplicatedStorage:FindFirstChild(RepairConfig.EventName)
+    if ev and ev:IsA("RemoteEvent") then
+        return ev
+    end
+    return nil
+end
+
+-- ═══ دالة الإصلاح ═══
+local function DoRepair(carName)
+    local ev = getRepairEvent()
+    if not ev then
+        return false, "ما لقيت " .. RepairConfig.EventName
+    end
+
+    local ok, err = pcall(function()
+        ev:FireServer(carName or RepairConfig.CarName)
+    end)
+
+    repairCount = repairCount + 1
+    return ok, err
+end
+
+-- ═══ دالة الإيقاف ═══
+local function StopRepair()
+    RepairConfig.Enabled = false
+    if repairThread then
+        pcall(function() task.cancel(repairThread) end)
+        repairThread = nil
+    end
+    A:Notify({
+        Title = "🔧 إصلاح",
+        Content = "تم الإيقاف | العمليات: " .. repairCount,
+        Duration = 2
+    })
+end
+
+-- ═══ دالة البدء ═══
+local function StartRepair()
+    local ev = getRepairEvent()
+    if not ev then
+        A:Notify({
+            Title = "❌ خطأ",
+            Content = "ما لقيت " .. RepairConfig.EventName,
+            Duration = 3
+        })
+        return
+    end
+
+    RepairConfig.Enabled = true
+    repairCount = 0
+
+    repairThread = task.spawn(function()
+        while RepairConfig.Enabled do
+            local ok, err = DoRepair(RepairConfig.CarName)
+            if not ok then
+                warn("[Repair] Error:", err)
+            end
+            task.wait(RepairConfig.Delay)
+        end
+    end)
+
+    A:Notify({
+        Title = "🔧 إصلاح",
+        Content = "اشتغل | " .. RepairConfig.CarName,
+        Duration = 2
+    })
+end
+
+-- ═══ الإعدادات ═══
+RepairTab:Input({
+    Title = "اسم الحدث",
+    Value = RepairConfig.EventName,
+    Placeholder = "RepairCarEvent",
+    Callback = function(v) RepairConfig.EventName = v end,
+})
+
+RepairTab:Input({
+    Title = "اسم السيارة",
+    Value = RepairConfig.CarName,
+    Placeholder = "Hurricane",
+    Callback = function(v) RepairConfig.CarName = v end,
+})
+
+RepairTab:Slider({
+    Title = "⏱️ التأخير",
+    Step  = 0.1,
+    Value = { Min = 0.1, Max = 5, Default = 1 },
+    Callback = function(v) RepairConfig.Delay = v end,
+})
+
+-- ═══ التحكم ═══
+RepairTab:Section({ Title = "🎛️ التحكم" })
+
+RepairTab:Toggle({
+    Title = "🔧 تفعيل الإصلاح التلقائي",
+    Desc  = "يرسل الأمر بشكل مستمر",
+    Default = false,
+    Callback = function(v)
+        if v then StartRepair() else StopRepair() end
+    end,
+})
+
+RepairTab:Button({
+    Title = "🔧 إصلاح مرة وحدة",
+    Callback = function()
+        local ok, err = DoRepair(RepairConfig.CarName)
+        A:Notify({
+            Title = ok and "✅ تم" or "❌ فشل",
+            Content = ok and (RepairConfig.CarName .. " - عملية #" .. repairCount) or tostring(err),
+            Duration = 2
+        })
+    end,
+})
+
+RepairTab:Button({
+    Title = "📊 حالة الإصلاح",
+    Callback = function()
+        local status = RepairConfig.Enabled and "🟢 شغال" or "🔴 متوقف"
+        A:Notify({
+            Title = "🔧 الحالة",
+            Content = status .. " | العمليات: " .. repairCount,
+            Duration = 3
+        })
+    end,
+})
+
+-- ═══ أزرار سيارات جاهزة ═══
+RepairTab:Section({ Title = "🚗 سيارات جاهزة" })
+
+local QuickCars = {
+    "Hurricane", "URUS", "Stang", "C8", "Station", "Rezvani", "HorseCars"
+}
+
+for _, carName in ipairs(QuickCars) do
+    RepairTab:Button({
+        Title = carName,
+        Callback = function()
+            RepairConfig.CarName = carName
+            local ok = DoRepair(carName)
+            A:Notify({
+                Title = ok and "✅" or "❌",
+                Content = "إصلاح: " .. carName,
+                Duration = 2
+            })
+        end,
+    })
+end
+
+-- ═══ Hotkey F9 ═══
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.F9 then
+        if RepairConfig.Enabled then
+            StopRepair()
+        else
+            StartRepair()
+        end
+    end
+end)-- ═══════════════════════════════════════════════════════
+--  SNAP TAB (زر P - نزول/طلوع فوري + تثبيت)
+-- ═══════════════════════════════════════════════════════
+
+local SnapTab = Window:Tab({ Title = "Snap", Icon = "arrow-up-down" })
+SnapTab:Section({ Title = "Snap - نزول/طلوع فوري" })
+
+-- ═══ الإعدادات ═══
+local SnapConfig = {
+    DownDistance = 5,       -- كم ينزل تحت الأرض
+    UpDistance   = 10,      -- كم يرتفع فوق السطح
+    IsDown       = false,   -- الحالة
+    SavedY       = nil,     -- الموقع الأصلي
+    HoldThread   = nil,     -- خيط التثبيت
+    HoldPart     = nil,     -- الجزء اللي نثبته
+}
+
+-- ═══ دالة التثبيت (يمنع الطيحان) ═══
+local function StartHold()
+    if SnapConfig.HoldThread then
+        pcall(function() task.cancel(SnapConfig.HoldThread) end)
+        SnapConfig.HoldThread = nil
+    end
+    
+    SnapConfig.HoldThread = task.spawn(function()
+        while SnapConfig.IsDown do
+            local char = player.Character
+            if not char then break end
+            
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if not root then break end
+            
+            -- نثبته في مكانه كل فريم
+            if SnapConfig.SavedY then
+                local targetY = SnapConfig.SavedY - SnapConfig.DownDistance
+                
+                -- نوقف السرعة
+                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                
+                -- نثبت الموقع
+                root.CFrame = CFrame.new(root.Position.X, targetY, root.Position.Z)
+            end
+            
+            RunService.Heartbeat:Wait()
+        end
+    end)
+end
+
+-- ═══ دالة إيقاف التثبيت ═══
+local function StopHold()
+    if SnapConfig.HoldThread then
+        pcall(function() task.cancel(SnapConfig.HoldThread) end)
+        SnapConfig.HoldThread = nil
+    end
+end
+
+-- ═══ Snap نزول ═══
+local function SnapDown()
+    local char = player.Character
+    if not char then return end
+    
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    -- نحفظ الموقع الأصلي
+    SnapConfig.SavedY = root.Position.Y
+    
+    -- Snap فوري
+    local targetY = SnapConfig.SavedY - SnapConfig.DownDistance
+    root.CFrame = CFrame.new(root.Position.X, targetY, root.Position.Z)
+    root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+    
+    SnapConfig.IsDown = true
+    
+    -- نبدأ التثبيت
+    StartHold()
+    
+    A:Notify({
+        Title = "Snap Down",
+        Content = "نزلت " .. SnapConfig.DownDistance .. " ستود - مثبت",
+        Duration = 1.5
+    })
+end
+
+-- ═══ Snap طلوع ═══
+local function SnapUp()
+    local char = player.Character
+    if not char then return end
+    
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    -- نوقف التثبيت أول
+    StopHold()
+    SnapConfig.IsDown = false
+    
+    -- نكتشف السطح
+    local rayOrigin = root.Position + Vector3.new(0, 5, 0)
+    local rayDir    = Vector3.new(0, -1, 0) * 1000
+    
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {char}
+    
+    local result = workspace:Raycast(rayOrigin, rayDir, params)
+    
+    local targetY
+    if result then
+        targetY = result.Position.Y + 3.5
+    else
+        targetY = (SnapConfig.SavedY or root.Position.Y) + SnapConfig.UpDistance
+    end
+    
+    -- Snap فوري
+    root.CFrame = CFrame.new(root.Position.X, targetY, root.Position.Z)
+    root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+    
+    A:Notify({
+        Title = "Snap Up",
+        Content = "طلعت فوق السطح",
+        Duration = 1.5
+    })
+end
+
+-- ═══ التبديل ═══
+local function ToggleSnap()
+    if SnapConfig.IsDown then
+        SnapUp()
+    else
+        SnapDown()
+    end
+end
+
+-- ═══ الإعدادات ═══
+SnapTab:Slider({
+    Title = "مسافة النزول",
+    Desc  = "كم ينزل تحت الأرض",
+    Step  = 1,
+    Value = { Min = 1, Max = 50, Default = 5 },
+    Callback = function(v) SnapConfig.DownDistance = v end,
+})
+
+SnapTab:Slider({
+    Title = "مسافة الطلوع",
+    Desc  = "إذا ما لقى سطح",
+    Step  = 1,
+    Value = { Min = 5, Max = 100, Default = 10 },
+    Callback = function(v) SnapConfig.UpDistance = v end,
+})
+
+-- ═══ التحكم ═══
+SnapTab:Section({ Title = "التحكم" })
+
+SnapTab:Button({
+    Title = "Snap Down",
+    Desc  = "أو اضغط P",
+    Callback = SnapDown,
+})
+
+SnapTab:Button({
+    Title = "Snap Up",
+    Desc  = "أو اضغط P مرة ثانية",
+    Callback = SnapUp,
+})
+
+SnapTab:Button({
+    Title = "Snap Toggle",
+    Desc  = "زر واحد يبدل",
+    Callback = ToggleSnap,
+})
+
+SnapTab:Button({
+    Title = "الحالة",
+    Callback = function()
+        local status = SnapConfig.IsDown and "تحت الأرض (مثبت)" or "فوق"
+        A:Notify({
+            Title = "Snap",
+            Content = status,
+            Duration = 2
+        })
+    end,
+})
+
+-- ═══ Hotkey: حرف P ═══
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    
+    if input.KeyCode == Enum.KeyCode.P then
+        ToggleSnap()
+    end
+end)-- ═══════════════════════════════════════════════════════
+--  PACKAGES SPAM TAB (بكجات سبام)
+-- ═══════════════════════════════════════════════════════
+
+local PackagesTab = Window:Tab({ Title = "بكجات سبام", Icon = "package" })
+PackagesTab:Section({ Title = "بكجات سبام" })
+
+-- ═══ الإعدادات ═══
+local PackagesConfig = {
+    WeaponEvent = "OpenWeaponCrateEvent",
+    CarEvent    = "OpenCrateEvent",
+    Delay       = 0.5,
+    Enabled     = false,
+    LastEvent   = "OpenWeaponCrateEvent",
+    LastType    = "Standard",
+}
+
+local packagesThread = nil
+local packagesCount  = 0
+
+-- ═══ دالة جلب الحدث ═══
+local function getEvent(eventName)
+    local ev = ReplicatedStorage:FindFirstChild(eventName)
+    if ev and ev:IsA("RemoteEvent") then
+        return ev
+    end
+    return nil
+end
+
+-- ═══ الإيقاف ═══
+local function StopPackages()
+    PackagesConfig.Enabled = false
+    if packagesThread then
+        pcall(function() task.cancel(packagesThread) end)
+        packagesThread = nil
+    end
+    A:Notify({
+        Title = "سبام",
+        Content = "تم الإيقاف",
+        Duration = 2
+    })
+end
+
+-- ═══ البدء ═══
+local function StartPackages(eventName, packageType)
+    local ev = getEvent(eventName)
+    if not ev then
+        A:Notify({
+            Title = "خطأ",
+            Content = "ما لقيت الحدث",
+            Duration = 3
+        })
+        return
+    end
+    
+    if packagesThread then
+        pcall(function() task.cancel(packagesThread) end)
+    end
+    
+    PackagesConfig.Enabled   = true
+    PackagesConfig.LastEvent = eventName
+    PackagesConfig.LastType  = packageType
+    packagesCount = 0
+    
+    packagesThread = task.spawn(function()
+        while PackagesConfig.Enabled do
+            local ok = pcall(function()
+                ev:FireServer(packageType)
+            end)
+            
+            packagesCount = packagesCount + 1
+            
+            if not ok then
+                PackagesConfig.Enabled = false
+                break
+            end
+            
+            task.wait(PackagesConfig.Delay)
+        end
+    end)
+end
+
+-- ═══ التأخير ═══
+PackagesTab:Slider({
+    Title = "التأخير",
+    Step  = 0.1,
+    Value = { Min = 0.1, Max = 5, Default = 0.5 },
+    Callback = function(v) PackagesConfig.Delay = v end,
+})
+
+-- ═══ بكجات الاسلحة ═══
+PackagesTab:Section({ Title = "اسلحة" })
+
+PackagesTab:Button({
+    Title = "بكج اسلحه - 699",
+    Callback = function()
+        StartPackages(PackagesConfig.WeaponEvent, "Standard")
+    end,
+})
+
+PackagesTab:Button({
+    Title = "بكج اسلحه - 1750",
+    Callback = function()
+        StartPackages(PackagesConfig.WeaponEvent, "Premium")
+    end,
+})
+
+PackagesTab:Button({
+    Title = "بكج اسلحه - 6500",
+    Callback = function()
+        StartPackages(PackagesConfig.WeaponEvent, "Ultimate")
+    end,
+})
+
+-- ═══ بكجات السيارات ═══
+PackagesTab:Section({ Title = "سيارات" })
+
+PackagesTab:Button({
+    Title = "بكج سياره - 4500",
+    Callback = function()
+        StartPackages(PackagesConfig.CarEvent, "Standard")
+    end,
+})
+
+PackagesTab:Button({
+    Title = "بكج سياره - 13500",
+    Callback = function()
+        StartPackages(PackagesConfig.CarEvent, "Premium")
+    end,
+})
+
+PackagesTab:Button({
+    Title = "بكج - 120000",
+    Callback = function()
+        StartPackages(PackagesConfig.CarEvent, "Ultimate")
+    end,
+})
+
+-- ═══ إيقاف ═══
+PackagesTab:Section({ Title = "ايقاف" })
+
+PackagesTab:Button({
+    Title = "ايقاف السبام",
+    Callback = StopPackages,
+})-- ═══════════════════════════════════════════════════════
+--  SETTINGS TAB (حفظ الإعدادات + ديسكورد)
+-- ═══════════════════════════════════════════════════════
+
+local SettingsTab = Window:Tab({ Title = "الاعدادات", Icon = "settings" })
+SettingsTab:Section({ Title = "حفظ واسترجاع الاعدادات" })
+
+-- ═══ ملف الحفظ ═══
+local SAVE_FILE = "reaper_car_settings.json"
+
+-- ═══ دالة الحفظ ═══
+local function SaveSettings()
+    local data = {
+        -- CAR CONTROL
+        CarSpeed           = CarSpeed,
+        CarRotateSpeed     = CarRotateSpeed,
+        Acceleration       = Acceleration,
+        Deceleration       = Deceleration,
+        RotationSmoothness = RotationSmoothness,
+        RotateSpeedLimit   = RotateSpeedLimit,
+        LockHeightEnabled  = LockHeightEnabled,
+        -- Z/X
+        VerticalSpeed      = VerticalSpeed,
+        VerticalSmoothness = VerticalSmoothness,
+        -- AUTO BUY
+        BuyItemName        = BuyConfig.ItemName,
+        BuyAmount          = BuyConfig.Amount,
+        BuyDelay           = BuyConfig.Delay,
+        BuyEventName       = BuyConfig.EventName,
+        -- SELL
+        AutoSellAll        = AutoSellAll,
+        -- QTE
+        QTEArg             = QTEArg,
+        QTERemote          = QTERemote,
+        QTEParent          = QTEParent,
+        QTEDelay           = QTEDelay,
+        -- SNAP
+        SnapDownDistance   = SnapConfig.DownDistance,
+        SnapUpDistance     = SnapConfig.UpDistance,
+        -- PACKAGES
+        PackagesDelay      = PackagesConfig.Delay,
+        -- SPAWN CAR
+        CarDistance        = Config.Distance,
+        CarHeight          = Config.Height,
+        CarAutoMove        = Config.AutoMove,
+    }
+    
+    local ok, encoded = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    
+    if not ok then
+        A:Notify({ Title = "خطأ", Content = "فشل التشفير", Duration = 3 })
+        return
+    end
+    
+    if writefile then
+        pcall(function()
+            writefile(SAVE_FILE, encoded)
+        end)
+        A:Notify({
+            Title = "حفظ",
+            Content = "تم حفظ الاعدادات",
+            Duration = 2
+        })
+    else
+        A:Notify({
+            Title = "خطأ",
+            Content = "الحفظ غير مدعوم",
+            Duration = 3
+        })
+    end
+end
+
+-- ═══ دالة التحميل ═══
+local function LoadSettings()
+    if not isfile or not readfile then
+        A:Notify({
+            Title = "خطأ",
+            Content = "التحميل غير مدعوم",
+            Duration = 3
+        })
+        return
+    end
+    
+    if not isfile(SAVE_FILE) then
+        A:Notify({
+            Title = "خطأ",
+            Content = "ما فيه ملف محفوظ",
+            Duration = 3
+        })
+        return
+    end
+    
+    local ok, content = pcall(function()
+        return readfile(SAVE_FILE)
+    end)
+    
+    if not ok or not content then
+        A:Notify({ Title = "خطأ", Content = "فشل القراءة", Duration = 3 })
+        return
+    end
+    
+    local ok2, data = pcall(function()
+        return HttpService:JSONDecode(content)
+    end)
+    
+    if not ok2 or not data then
+        A:Notify({ Title = "خطأ", Content = "فشل فك التشفير", Duration = 3 })
+        return
+    end
+    
+    -- تطبيق القيم
+    if data.CarSpeed           then CarSpeed = data.CarSpeed end
+    if data.CarRotateSpeed     then CarRotateSpeed = data.CarRotateSpeed end
+    if data.Acceleration       then Acceleration = data.Acceleration end
+    if data.Deceleration       then Deceleration = data.Deceleration end
+    if data.RotationSmoothness then RotationSmoothness = data.RotationSmoothness end
+    if data.RotateSpeedLimit   then RotateSpeedLimit = data.RotateSpeedLimit end
+    if data.LockHeightEnabled  ~= nil then LockHeightEnabled = data.LockHeightEnabled end
+    if data.VerticalSpeed      then VerticalSpeed = data.VerticalSpeed end
+    if data.VerticalSmoothness then VerticalSmoothness = data.VerticalSmoothness end
+    if data.BuyItemName        then BuyConfig.ItemName = data.BuyItemName end
+    if data.BuyAmount          then BuyConfig.Amount = data.BuyAmount end
+    if data.BuyDelay           then BuyConfig.Delay = data.BuyDelay end
+    if data.BuyEventName       then BuyConfig.EventName = data.BuyEventName end
+    if data.AutoSellAll        ~= nil then AutoSellAll = data.AutoSellAll end
+    if data.QTEArg             then QTEArg = data.QTEArg end
+    if data.QTERemote          then QTERemote = data.QTERemote end
+    if data.QTEParent          then QTEParent = data.QTEParent end
+    if data.QTEDelay           then QTEDelay = data.QTEDelay end
+    if data.SnapDownDistance   then SnapConfig.DownDistance = data.SnapDownDistance end
+    if data.SnapUpDistance     then SnapConfig.UpDistance = data.SnapUpDistance end
+    if data.PackagesDelay      then PackagesConfig.Delay = data.PackagesDelay end
+    if data.CarDistance        then Config.Distance = data.CarDistance end
+    if data.CarHeight          then Config.Height = data.CarHeight end
+    if data.CarAutoMove        ~= nil then Config.AutoMove = data.CarAutoMove end
+    
+    A:Notify({
+        Title = "تحميل",
+        Content = "تم تحميل الاعدادات",
+        Duration = 2
+    })
+end
+
+-- ═══ دالة الحذف ═══
+local function DeleteSettings()
+    if not isfile or not delfile then
+        A:Notify({ Title = "خطأ", Content = "الحذف غير مدعوم", Duration = 3 })
+        return
+    end
+    
+    if isfile(SAVE_FILE) then
+        pcall(function() delfile(SAVE_FILE) end)
+        A:Notify({
+            Title = "حذف",
+            Content = "تم حذف الملف",
+            Duration = 2
+        })
+    else
+        A:Notify({
+            Title = "خطأ",
+            Content = "ما فيه ملف",
+            Duration = 2
+        })
+    end
+end
+
+-- ═══ أزرار الحفظ ═══
+SettingsTab:Button({
+    Title = "حفظ الاعدادات",
+    Desc  = "يحفظ كل الاعدادات الحالية",
+    Callback = SaveSettings,
+})
+
+SettingsTab:Button({
+    Title = "تحميل الاعدادات",
+    Desc  = "يرجع الاعدادات المحفوظة",
+    Callback = LoadSettings,
+})
+
+SettingsTab:Button({
+    Title = "حذف الملف المحفوظ",
+    Callback = DeleteSettings,
+})
+
+-- ═══ حفظ تلقائي ═══
+SettingsTab:Toggle({
+    Title = "حفظ تلقائي",
+    Desc  = "يحفظ كل 60 ثانية",
+    Default = false,
+    Callback = function(v)
+        if v then
+            task.spawn(function()
+                while true do
+                    task.wait(60)
+                    pcall(SaveSettings)
+                end
+            end)
+            A:Notify({ Title = "حفظ تلقائي", Content = "اشتغل", Duration = 2 })
+        end
+    end,
+})
+
+-- ═══ قسم الديسكورد ═══
+SettingsTab:Section({ Title = "ديسكورد" })
+
+SettingsTab:Button({
+    Title = "دخول سيرفر الديسكورد",
+    Desc  = "اضغط لنسخ الرابط",
+    Callback = function()
+        local link = "https://discord.gg/rta"
+        if setclipboard then
+            pcall(function() setclipboard(link) end)
+        end
+        A:Notify({
+            Title = "ديسكورد",
+            Content = "تم نسخ الرابط: " .. link,
+            Duration = 5
+        })
+    end,
+})
+
+SettingsTab:Button({
+    Title = "عرض الرابط",
+    Callback = function()
+        A:Notify({
+            Title = "ديسكورد",
+            Content = "https://discord.gg/rta",
+            Duration = 6
+        })
+    end,
+})
+
+-- ═══ قسم اليوتيوب ═══
+SettingsTab:Section({ Title = "يوتيوب" })
+
+SettingsTab:Button({
+    Title = "قناة العمدة RTA",
+    Desc  = "اضغط لنسخ الرابط",
+    Callback = function()
+        local link = "https://youtube.com/@rta_7"
+        if setclipboard then
+            pcall(function() setclipboard(link) end)
+        end
+        A:Notify({
+            Title = "يوتيوب",
+            Content = "تم نسخ الرابط: " .. link,
+            Duration = 5
+        })
+    end,
+})
+
+SettingsTab:Button({
+    Title = "عرض رابط اليوتيوب",
+    Callback = function()
+        A:Notify({
+            Title = "يوتيوب",
+            Content = "https://youtube.com/@rta_7",
+            Duration = 6
+        })
+    end,
+})-- ═══════════════════════════════════════════════════════
+--  AUTO FARM TAB (تنظيف ماء المطعم) - زر واحد
+-- ═══════════════════════════════════════════════════════
+
+local FarmTab = Window:Tab({ Title = "اوتو فارم", Icon = "sparkles" })
+FarmTab:Section({ Title = "تنظيف ماء المطعم" })
+
+-- ═══ الإعدادات ═══
+local FarmConfig = {
+    JobEvent      = "StartJobResponse",
+    CleanEvent    = "CleanPuddleRequest",
+    Delay         = 0.3,
+    Enabled       = false,
+    GoToWater     = true,
+    FlyDuration   = 6,
+    FlySpeed      = 100,
+}
+
+local farmThread = nil
+local farmCount  = 0
+local flyConnection = nil
+
+-- ═══ دالة جلب الحدث ═══
+local function getEvent(eventName)
+    local remoteFolder = ReplicatedStorage:FindFirstChild("RemoteEvents")
+    if remoteFolder then
+        local ev = remoteFolder:FindFirstChild(eventName)
+        if ev and ev:IsA("RemoteEvent") then
+            return ev
+        end
+    end
+    return nil
+end
+
+-- ═══ دالة مسك الأداة رقم 1 ═══
+local function EquipTool1()
+    local char = player.Character
+    if not char then return false end
+    
+    local backpack = player:FindFirstChild("Backpack")
+    if not backpack then return false end
+    
+    -- نجيب كل الأدوات
+    local tools = {}
+    for _, item in ipairs(backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            table.insert(tools, item)
+        end
+    end
+    
+    -- نرتب حسب الاسم
+    table.sort(tools, function(a, b) return a.Name < b.Name end)
+    
+    if #tools == 0 then
+        return false
+    end
+    
+    -- نمسك الأداة الأولى
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid:EquipTool(tools[1])
+        return true
+    end
+    
+    return false
+end
+
+-- ═══ دالة جلب ماء المطعم ═══
+local function GetRestaurantWater()
+    local waterList = {}
+    
+    local interior = workspace:FindFirstChild("Interior")
+    if not interior then return waterList end
+    
+    local puddles = interior:FindFirstChild("Puddles")
+    if not puddles then return waterList end
+    
+    for _, puddle in ipairs(puddles:GetChildren()) do
+        table.insert(waterList, puddle)
+    end
+    
+    return waterList
+end
+
+-- ═══ دالة الطيران فوق الماء ═══
+local function FlyToWater(water)
+    local char = player.Character
+    if not char then return false end
+    
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return false end
+    
+    local waterPos
+    if water:IsA("BasePart") then
+        waterPos = water.Position
+    elseif water:IsA("Model") and water.PrimaryPart then
+        waterPos = water.PrimaryPart.Position
+    else
+        local part = water:FindFirstChildWhichIsA("BasePart")
+        if part then waterPos = part.Position else return false end
+    end
+    
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    
+    local targetPos = waterPos + Vector3.new(0, 3, 0)
+    local reached = false
+    local startTime = tick()
+    
+    flyConnection = RunService.Heartbeat:Connect(function(dt)
+        if not char.Parent then
+            flyConnection:Disconnect()
+            return
+        end
+        
+        local r = char:FindFirstChild("HumanoidRootPart")
+        if not r then return end
+        
+        local currentPos = r.Position
+        local diff = targetPos - currentPos
+        local distance = diff.Magnitude
+        
+        if distance < 2 or tick() - startTime > 3 then
+            r.CFrame = CFrame.new(targetPos)
+            reached = true
+            flyConnection:Disconnect()
+            flyConnection = nil
+            return
+        end
+        
+        local direction = diff.Unit
+        local step = math.min(FarmConfig.FlySpeed * dt, distance)
+        r.CFrame = CFrame.new(currentPos + direction * step)
+        r.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    end)
+    
+    local waitTime = 0
+    while not reached and waitTime < 3.5 do
+        task.wait(0.05)
+        waitTime = waitTime + 0.05
+    end
+    
+    return reached
+end
+
+-- ═══ دالة البقاء فوق الماء ═══
+local function HoldAboveWater(water)
+    local char = player.Character
+    if not char then return end
+    
+    local waterPos
+    if water:IsA("BasePart") then
+        waterPos = water.Position
+    elseif water:IsA("Model") and water.PrimaryPart then
+        waterPos = water.PrimaryPart.Position
+    else
+        local part = water:FindFirstChildWhichIsA("BasePart")
+        if part then waterPos = part.Position else return end
+    end
+    
+    local targetPos = waterPos + Vector3.new(0, 3, 0)
+    local holdEnd = tick() + FarmConfig.FlyDuration
+    
+    while tick() < holdEnd and FarmConfig.Enabled do
+        local r = char:FindFirstChild("HumanoidRootPart")
+        if not r then break end
+        
+        r.CFrame = CFrame.new(targetPos)
+        r.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        r.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+        
+        RunService.Heartbeat:Wait()
+    end
+end
+
+-- ═══ دالة تنظيف الماء ═══
+local function CleanWater()
+    local cleanEvent = getEvent(FarmConfig.CleanEvent)
+    if not cleanEvent then
+        return false, "ما لقيت الحدث"
+    end
+    
+    local waterList = GetRestaurantWater()
+    if #waterList == 0 then
+        return false, "ما فيه ماء"
+    end
+    
+    local cleaned = 0
+    for _, water in ipairs(waterList) do
+        pcall(function()
+            cleanEvent:FireServer("Start", water)
+            task.wait(0.05)
+            cleanEvent:FireServer("Complete", water)
+        end)
+        
+        cleaned = cleaned + 1
+        
+        if FarmConfig.GoToWater then
+            local arrived = FlyToWater(water)
+            if arrived then
+                HoldAboveWater(water)
+            end
+        end
+    end
+    
+    return true, cleaned
+end
+
+-- ═══ دالة بدء الوظيفة ═══
+local function StartJob()
+    local jobEvent = getEvent(FarmConfig.JobEvent)
+    if not jobEvent then return false end
+    
+    pcall(function()
+        jobEvent:FireServer(true)
+    end)
+    return true
+end
+
+-- ═══ الإيقاف ═══
+local function StopFarm()
+    FarmConfig.Enabled = false
+    if farmThread then
+        pcall(function() task.cancel(farmThread) end)
+        farmThread = nil
+    end
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    A:Notify({
+        Title = "اوتو فارم",
+        Content = "تم الإيقاف | العمليات: " .. farmCount,
+        Duration = 2
+    })
+end
+
+-- ═══ البدء (زر واحد) ═══
+local function StartFarm()
+    FarmConfig.Enabled = true
+    farmCount = 0
+    
+    farmThread = task.spawn(function()
+        -- 1. مسك الأداة رقم 1
+        EquipTool1()
+        task.wait(0.5)
+        
+        -- 2. بدء الوظيفة
+        StartJob()
+        task.wait(1)
+        
+        -- 3. التنظيف
+        while FarmConfig.Enabled do
+            local ok, result = CleanWater()
+            if ok then
+                farmCount = farmCount + result
+            end
+            task.wait(FarmConfig.Delay)
+        end
+    end)
+    
+    A:Notify({
+        Title = "اوتو فارم",
+        Content = "اشتغل",
+        Duration = 2
+    })
+end
+
+-- ═══ التأخير ═══
+FarmTab:Slider({
+    Title = "التأخير",
+    Step  = 0.1,
+    Value = { Min = 0.1, Max = 3, Default = 0.3 },
+    Callback = function(v) FarmConfig.Delay = v end,
+})
+
+-- ═══ مدة البقاء فوق الماء ═══
+FarmTab:Slider({
+    Title = "مدة البقاء فوق الماء",
+    Step  = 1,
+    Value = { Min = 1, Max = 30, Default = 6 },
+    Callback = function(v) FarmConfig.FlyDuration = v end,
+})
+
+-- ═══ سرعة الطيران ═══
+FarmTab:Slider({
+    Title = "سرعة الطيران",
+    Step  = 10,
+    Value = { Min = 20, Max = 300, Default = 100 },
+    Callback = function(v) FarmConfig.FlySpeed = v end,
+})
+
+-- ═══ زر واحد ═══
+FarmTab:Section({ Title = "التحكم" })
+
+FarmTab:Toggle({
+    Title = "اوتو فارم",
+    Desc  = "يمسك الاداة 1 + يبدا الوظيفة + ينظف",
+    Default = false,
+    Callback = function(v)
+        if v then
+            StartFarm()
+        else
+            StopFarm()
+        end
+    end,
+})
+
+-- ═══ Hotkey F11 ═══
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.F11 then
+        if FarmConfig.Enabled then
+            StopFarm()
+        else
+            StartFarm()
+        end
+    end
+end)-- ═══════════════════════════════════════════════════════
+--  🎯 SERVER HOP - يدخلك سيرفر بعدد محدد
+-- ═══════════════════════════════════════════════════════
+
+local Players           = game:GetService("Players")
+local HttpService       = game:GetService("HttpService")
+local TeleportService   = game:GetService("TeleportService")
+local UserInputService  = game:GetService("UserInputService")
+local CoreGui           = game:GetService("CoreGui")
+
+local player = Players.LocalPlayer
+
+-- ═══ الإعدادات ═══
+local HopConfig = {
+    TargetCount = 1,       -- عدد اللاعبين المطلوب
+    MaxPages    = 10,      -- كم صفحة يدور
+    ExactMatch  = false,   -- true = بالضبط | false = أقل أو يساوي
+    Enabled     = false,
+}
+
+local hopThread = nil
+
+-- ═══ دالة جلب السيرفرات ═══
+local function GetServers()
+    local servers = {}
+    local cursor = ""
+    
+    for page = 1, HopConfig.MaxPages do
+        local url = string.format(
+            "https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100&cursor=%s",
+            game.PlaceId, cursor
+        )
+        
+        local ok, response = pcall(function()
+            return game:HttpGet(url)
+        end)
+        
+        if not ok then
+            warn("[ServerHop] فشل الاتصال")
+            break
+        end
+        
+        local ok2, data = pcall(function()
+            return HttpService:JSONDecode(response)
+        end)
+        
+        if not ok2 or not data or not data.data then
+            break
+        end
+        
+        for _, server in ipairs(data.data) do
+            -- نتجاهل السيرفر الحالي
+            if server.id ~= game.JobId then
+                local playerCount = server.playing or 0
+                local maxPlayers  = server.maxPlayers or 0
+                
+                -- نتحقق من العدد
+                local match = false
+                if HopConfig.ExactMatch then
+                    match = (playerCount == HopConfig.TargetCount)
+                else
+                    match = (playerCount <= HopConfig.TargetCount)
+                end
+                
+                -- نتأكد إن السيرفر مو ممتلئ
+                if match and playerCount < maxPlayers then
+                    table.insert(servers, {
+                        id = server.id,
+                        playing = playerCount,
+                        maxPlayers = maxPlayers,
+                        ping = server.ping or 0,
+                    })
+                end
+            end
+        end
+        
+        -- إذا لقينا سيرفرات كافية، نوقف
+        if #servers >= 5 then
+            break
+        end
+        
+        cursor = data.nextPageCursor
+        if not cursor or cursor == "" then
+            break
+        end
+    end
+    
+    return servers
+end
+
+-- ═══ دالة الدخول لسيرفر ═══
+local function JoinServer(serverId)
+    local ok, err = pcall(function()
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, player)
+    end)
+    
+    if not ok then
+        warn("[ServerHop] فشل الدخول:", err)
+    end
+    
+    return ok
+end
+
+-- ═══ الإيقاف ═══
+local function StopHop()
+    HopConfig.Enabled = false
+    if hopThread then
+        pcall(function() task.cancel(hopThread) end)
+        hopThread = nil
+    end
+end
+
+-- ═══ البدء ═══
+local function StartHop()
+    HopConfig.Enabled = true
+    
+    hopThread = task.spawn(function()
+        while HopConfig.Enabled do
+            print("[ServerHop] 🔍 جاري البحث عن سيرفر فيه " .. HopConfig.TargetCount .. " لاعب...")
+            
+            local servers = GetServers()
+            
+            if #servers == 0 then
+                print("[ServerHop] ❌ ما لقيت سيرفر، نحاول مرة ثانية...")
+                task.wait(3)
+            else
+                -- نختار سيرفر عشوائي من النتائج
+                local chosen = servers[math.random(1, #servers)]
+                
+                print(string.format(
+                    "[ServerHop] ✅ لقيت سيرفر: %d/%d لاعب - Job ID: %s",
+                    chosen.playing, chosen.maxPlayers, chosen.id
+                ))
+                
+                JoinServer(chosen.id)
+                break
+            end
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════
+--  الواجهة
+-- ═══════════════════════════════════════════════════════
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ServerHopUI"
+ScreenGui.ResetOnSpawn = false
+
+local ok = pcall(function()
+    ScreenGui.Parent = CoreGui
+end)
+if not ok then
+    ScreenGui.Parent = player:WaitForChild("PlayerGui")
+end
+
+-- ═══ الإطار الرئيسي ═══
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 240)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -120)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = MainFrame
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(100, 100, 255)
+Stroke.Thickness = 2
+Stroke.Parent = MainFrame
+
+-- ═══ العنوان ═══
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+Title.BorderSizePixel = 0
+Title.Text = "🎯 SERVER HOP"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- ═══ زر الإغلاق ═══
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 16
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 15)
+CloseCorner.Parent = CloseBtn
+
+-- ═══ خانة عدد اللاعبين ═══
+local CountLabel = Instance.new("TextLabel")
+CountLabel.Size = UDim2.new(0.4, 0, 0, 25)
+CountLabel.Position = UDim2.new(0.05, 0, 0, 55)
+CountLabel.BackgroundTransparency = 1
+CountLabel.Text = "عدد اللاعبين:"
+CountLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+CountLabel.TextSize = 13
+CountLabel.Font = Enum.Font.Gotham
+CountLabel.TextXAlignment = Enum.TextXAlignment.Left
+CountLabel.Parent = MainFrame
+
+local CountBox = Instance.new("TextBox")
+CountBox.Size = UDim2.new(0.5, 0, 0, 28)
+CountBox.Position = UDim2.new(0.45, 0, 0, 55)
+CountBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+CountBox.BorderSizePixel = 0
+CountBox.Text = "1"
+CountBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+CountBox.TextSize = 14
+CountBox.Font = Enum.Font.Gotham
+CountBox.Parent = MainFrame
+
+local CountCorner = Instance.new("UICorner")
+CountCorner.CornerRadius = UDim.new(0, 6)
+CountCorner.Parent = CountBox
+
+-- ═══ خيار "بالضبط" ═══
+local ExactBtn = Instance.new("TextButton")
+ExactBtn.Size = UDim2.new(0.9, 0, 0, 30)
+ExactBtn.Position = UDim2.new(0.05, 0, 0, 95)
+ExactBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+ExactBtn.BorderSizePixel = 0
+ExactBtn.Text = "بالضبط: مغلق"
+ExactBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+ExactBtn.TextSize = 13
+ExactBtn.Font = Enum.Font.Gotham
+ExactBtn.Parent = MainFrame
+
+local ExactCorner = Instance.new("UICorner")
+ExactCorner.CornerRadius = UDim.new(0, 6)
+ExactCorner.Parent = ExactBtn
+
+-- ═══ زر البحث ═══
+local HopButton = Instance.new("TextButton")
+HopButton.Size = UDim2.new(0.9, 0, 0, 45)
+HopButton.Position = UDim2.new(0.05, 0, 0, 135)
+HopButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+HopButton.BorderSizePixel = 0
+HopButton.Text = "ابحث وادخل"
+HopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+HopButton.TextSize = 16
+HopButton.Font = Enum.Font.GothamBold
+HopButton.Parent = MainFrame
+
+local HopCorner = Instance.new("UICorner")
+HopCorner.CornerRadius = UDim.new(0, 8)
+HopCorner.Parent = HopButton
+
+-- ═══ الحالة ═══
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0.9, 0, 0, 25)
+StatusLabel.Position = UDim2.new(0.05, 0, 0, 190)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "الحالة: جاهز"
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.TextSize = 13
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Parent = MainFrame
+
+-- ═══ الأحداث ═══
+local function updateUI()
+    if HopConfig.Enabled then
+        StatusLabel.Text = "الحالة: جاري البحث..."
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+        HopButton.Text = "ايقاف البحث"
+        HopButton.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+    else
+        StatusLabel.Text = "الحالة: جاهز"
+        StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        HopButton.Text = "ابحث وادخل"
+        HopButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+    end
+end
+
+CountBox.FocusLost:Connect(function()
+    local num = tonumber(CountBox.Text)
+    if num and num >= 0 then
+        HopConfig.TargetCount = math.floor(num)
+    else
+        CountBox.Text = tostring(HopConfig.TargetCount)
+    end
+end)
+
+ExactBtn.MouseButton1Click:Connect(function()
+    HopConfig.ExactMatch = not HopConfig.ExactMatch
+    if HopConfig.ExactMatch then
+        ExactBtn.Text = "بالضبط: مفتوح"
+        ExactBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+    else
+        ExactBtn.Text = "بالضبط: مغلق"
+        ExactBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    end
+end)
+
+HopButton.MouseButton1Click:Connect(function()
+    if HopConfig.Enabled then
+        StopHop()
+        StatusLabel.Text = "الحالة: تم الايقاف"
+    else
+        StartHop()
+        StatusLabel.Text = "الحالة: جاري البحث..."
+    end
+    updateUI()
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    StopHop()
+    ScreenGui:Destroy()
+end)
+
+-- ═══ تحديث الحالة ═══
+task.spawn(function()
+    while ScreenGui.Parent do
+        updateUI()
+        task.wait(0.5)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════
+--  AUTO SELL FISH TAB (بيع الأسماك) - مع تحديد العدد
+-- ═══════════════════════════════════════════════════════
+
+local FishSellTab = Window:Tab({ Title = "بيع الاسماك", Icon = "fish" })
+FishSellTab:Section({ Title = "بيع الاسماك" })
+
+-- ═══ الإعدادات ═══
+local FishSellConfig = {
+    EventName = "SellShopEvent",
+    Delay     = 0.15,
+    Enabled   = false,
+}
+
+-- ═══ الأسماك ═══
+local FishList = {
+    { Name = "Tuna",         DebugId = "1_4535164", Amount = 99 },
+    { Name = "Dolphinfish",  DebugId = "1_4535169", Amount = 99 },
+    { Name = "Coelacanth",   DebugId = "1_4535202", Amount = 99 },
+    { Name = "NorthernPike", DebugId = "1_4537790", Amount = 99 },
+    { Name = "Sailfish",     DebugId = "1_4544279", Amount = 99 },
+    { Name = "Marlin",       DebugId = "1_4544527", Amount = 99 },
+}
+
+local FishEnabled = {}
+for _, fish in ipairs(FishList) do
+    FishEnabled[fish.Name] = true
+end
+
+local sellThread = nil
+local sellCount  = 0
+
+-- ═══ دالة جلب الحدث ═══
+local function getSellEvent()
+    local ev = ReplicatedStorage:FindFirstChild(FishSellConfig.EventName)
+    if ev and ev:IsA("RemoteEvent") then
+        return ev
+    end
+    return nil
+end
+
+-- ═══ دالة تجميع كل الأسماك ═══
+local function CollectAllFish()
+    local collected = {}
+    
+    local nilInstances = nil
+    if getnilinstances then
+        pcall(function()
+            nilInstances = getnilinstances()
+        end)
+    end
+    
+    for _, fish in ipairs(FishList) do
+        if not FishEnabled[fish.Name] then continue end
+        
+        local found = nil
+        
+        if nilInstances then
+            for _, obj in ipairs(nilInstances) do
+                if obj.Name == fish.Name then
+                    local ok, did = pcall(function() return obj:GetDebugId() end)
+                    if ok and did == fish.DebugId then
+                        found = obj
+                        break
+                    elseif not ok then
+                        found = obj
+                        break
+                    end
+                end
+            end
+        end
+        
+        if not found then
+            local backpack = player:FindFirstChild("Backpack")
+            if backpack then
+                found = backpack:FindFirstChild(fish.Name)
+            end
+        end
+        
+        if not found then
+            local char = player.Character
+            if char then
+                found = char:FindFirstChild(fish.Name)
+            end
+        end
+        
+        if found then
+            table.insert(collected, {
+                name = fish.Name,
+                obj = found,
+                amount = fish.Amount,
+            })
+        end
+    end
+    
+    return collected
+end
+
+-- ═══ بيع الأسماك حسب العدد المحدد ═══
+local function SellAllFish()
+    local ev = getSellEvent()
+    if not ev then return 0 end
+    
+    local fishes = CollectAllFish()
+    if #fishes == 0 then return 0 end
+    
+    local sold = 0
+    
+    for _, item in ipairs(fishes) do
+        -- نرسل السمكة بعدد المرات المحدد
+        for i = 1, item.amount do
+            pcall(function()
+                ev:FireServer("SELL_ITEM", "tool", item.obj)
+            end)
+            sold = sold + 1
+            sellCount = sellCount + 1
+            
+            -- تأخير بسيط بين كل إرسال لتجنب lag
+            if FishSellConfig.Delay > 0 then
+                task.wait(FishSellConfig.Delay)
+            end
+        end
+    end
+    
+    return sold
+end
+
+-- ═══ الإيقاف ═══
+local function StopSell()
+    FishSellConfig.Enabled = false
+    if sellThread then
+        pcall(function() task.cancel(sellThread) end)
+        sellThread = nil
+    end
+    A:Notify({
+        Title = "بيع الاسماك",
+        Content = "تم الإيقاف | العمليات: " .. sellCount,
+        Duration = 2
+    })
+end
+
+-- ═══ البدء ═══
+local function StartSell()
+    local ev = getSellEvent()
+    if not ev then
+        A:Notify({
+            Title = "خطأ",
+            Content = "ما لقيت SellShopEvent",
+            Duration = 3
+        })
+        return
+    end
+    
+    FishSellConfig.Enabled = true
+    sellCount = 0
+    
+    sellThread = task.spawn(function()
+        while FishSellConfig.Enabled do
+            SellAllFish()
+            task.wait(0.5)
+        end
+    end)
+    
+    A:Notify({
+        Title = "بيع الاسماك",
+        Content = "اشتغل",
+        Duration = 2
+    })
+end
+
+-- ═══ التأخير بين كل سمكة ═══
+FishSellTab:Slider({
+    Title = "التأخير بين كل سمكة",
+    Desc  = "كل ما قل، كل ما بيع أسرع",
+    Step  = 0.05,
+    Value = { Min = 0, Max = 1, Default = 0.15 },
+    Callback = function(v) FishSellConfig.Delay = v end,
+})
+
+-- ═══ التحكم ═══
+FishSellTab:Section({ Title = "التحكم" })
+
+FishSellTab:Toggle({
+    Title = "بيع الاسماك تلقائي",
+    Default = false,
+    Callback = function(v)
+        if v then
+            StartSell()
+        else
+            StopSell()
+        end
+    end,
+})
+
+FishSellTab:Button({
+    Title = "بيع كل الاسماك",
+    Callback = function()
+        local sold = SellAllFish()
+        A:Notify({
+            Title = "تم",
+            Content = "بعت " .. sold .. " سمكة",
+            Duration = 2
+        })
+    end,
+})
+
+FishSellTab:Button({
+    Title = "ايقاف",
+    Callback = StopSell,
+})
+
+FishSellTab:Button({
+    Title = "فحص الاسماك",
+    Callback = function()
+        local fishes = CollectAllFish()
+        local found = {}
+        for _, fish in ipairs(FishList) do
+            local isFound = false
+            for _, item in ipairs(fishes) do
+                if item.name == fish.Name then
+                    isFound = true
+                    break
+                end
+            end
+            table.insert(found, fish.Name .. (isFound and " ✓" or " ✗"))
+        end
+        A:Notify({
+            Title = "فحص",
+            Content = table.concat(found, " | "),
+            Duration = 5
+        })
+    end,
+})
+
+-- ═══ اختيار الأسماك + عدد البيع ═══
+FishSellTab:Section({ Title = "الاسماك - حدد العدد" })
+
+for _, fish in ipairs(FishList) do
+    FishSellTab:Toggle({
+        Title = fish.Name,
+        Default = true,
+        Callback = function(v)
+            FishEnabled[fish.Name] = v
+        end,
+    })
+    
+    FishSellTab:Slider({
+        Title = "عدد " .. fish.Name,
+        Desc  = "كم مرة يرسل البيع",
+        Step  = 1,
+        Value = { Min = 1, Max = 999, Default = 99 },
+        Callback = function(v)
+            fish.Amount = math.floor(v)
+        end,
+    })
+end
+
+-- ═══ Hotkey F12 ═══
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.F12 then
+        if FishSellConfig.Enabled then
+            StopSell()
+        else
+            StartSell()
+        end
+    end
+end)
