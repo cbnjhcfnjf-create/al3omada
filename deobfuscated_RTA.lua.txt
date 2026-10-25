@@ -1,0 +1,1401 @@
+-- This file was generated at discord.gg/syncrypt
+
+local lib = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local v10 = Character
+local HumanoidRootPart = v10.WaitForChild(v10, "HumanoidRootPart")
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+	Character = character
+	Humanoid = character:WaitForChild("Humanoid")
+	HumanoidRootPart = character:WaitForChild("HumanoidRootPart")
+end)
+
+local t1 = {
+	WalkSpeed = 16,
+	JumpPower = 50,
+	InfiniteJump = false,
+	Fly = false,
+	Noclip = false,
+	AntiVoid = false,
+	BunnyHop = false,
+	FOV = 70,
+	Aimbot = false,
+	AimbotRequireWeapon = true,
+	AimPart = "Head",
+	AimSmooth = 0,
+	NoRecoil = false,
+	Wallbang = false,
+	FOVRadius = 150,
+	ShowFOVCircle = true,
+	HitboxExpand = false,
+	HitboxSize = 8,
+	ESP = false,
+	ESPColor = Color3.fromRGB(255, 60, 60),
+	Tracers = false,
+	NameTags = true,
+	HealthBar = true,
+	Chams = false,
+	MobileAimToggle = true
+}
+local t2 = {}
+
+local function v14()
+	if Character then
+		local v15 = Character
+
+		for _, child in ipairs(v15.GetChildren(v15)) do
+			if child:IsA("Tool") then
+				return true
+			end
+		end
+
+		return false
+	else
+		return false
+	end
+end
+
+local v18 = nil
+
+local function v19()
+	local v20 = LocalPlayer
+	local t3 = { v20.FindFirstChild(v20, "Backpack"), Character, ReplicatedStorage }
+	local t4 = {}
+	local n1 = 0
+
+	for _, v in ipairs(t3) do
+		if v then
+			for _, descendant in ipairs(v.GetDescendants(v)) do
+				if not t4[descendant] then
+					t4[descendant] = true
+
+					if descendant:IsA("NumberValue") or (descendant:IsA("IntValue") or descendant:IsA("FloatValue")) then
+						local v28 = descendant.Name:lower()
+
+						if v28:find("recoil") or (v28:find("spread") or (v28:find("bloom") or (v28:find("deviation") or (v28:find("kick") or v28:find("sway"))))) then
+							if pcall(function()
+								descendant.Value = 0
+							end) then
+								n1 = n1 + 1
+							end
+						elseif v28:find("accuracy") and pcall(function()
+							descendant.Value = 100
+						end) then
+							n1 = n1 + 1
+						end
+					end
+
+					if descendant:IsA("Tool") then
+						for _, v2 in ipairs({
+							"Recoil",
+							"Spread",
+							"MaxSpread",
+							"MinSpread",
+							"Bloom",
+							"Deviation",
+							"Kickback",
+							"RecoilAmount",
+							"Sway",
+							"Accuracy"
+						}) do
+							if pcall(function()
+								if v2 == "Accuracy" then
+									descendant:SetAttribute(v2, 100)
+								else
+									descendant:SetAttribute(v2, 0)
+								end
+							end) then
+								n1 = n1 + 1
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	v18("No Recoil", "Patched " .. n1 .. " values")
+end
+
+v18 = function(p1, p2, p3)
+	local v31 = lib
+
+	v31.Notify(v31, {
+		Title = p1 or "العمدة RTA",
+		Content = p2 or "",
+		Duration = p3 or 2,
+		Icon = "bell"
+	})
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+
+ScreenGui.Name = "KAT_FOV"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local gethui_ = gethui
+
+if gethui_ then
+	gethui_ = gethui()
+end
+
+ScreenGui.Parent = gethui_ or game:GetService("CoreGui")
+
+local Frame = Instance.new("Frame")
+
+Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+Frame.Position = UDim2.fromScale(0.5, 0.5)
+Frame.BackgroundTransparency = 1
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+local UIStroke = Instance.new("UIStroke")
+
+UIStroke.Color = Color3.fromRGB(255, 255, 255)
+UIStroke.Thickness = 1.5
+UIStroke.Transparency = 0.3
+UIStroke.Parent = Frame
+
+local UICorner = Instance.new("UICorner")
+
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = Frame
+
+local function v37()
+	local FOVRadius = t1.FOVRadius or 150
+
+	Frame.Size = UDim2.fromOffset(FOVRadius * 2, FOVRadius * 2)
+
+	local v39 = Frame
+	local ShowFOVCircle = t1.ShowFOVCircle
+
+	if not ShowFOVCircle then
+		v39.Visible = ShowFOVCircle
+
+		return
+	end
+
+	ShowFOVCircle = t1.Aimbot
+	v39.Visible = ShowFOVCircle
+end
+
+local ScreenGui2 = Instance.new("ScreenGui")
+
+ScreenGui2.Name = "KAT_Mobile"
+ScreenGui2.ResetOnSpawn = false
+ScreenGui2.IgnoreGuiInset = true
+
+local gethui_2 = gethui
+
+if gethui_2 then
+	gethui_2 = gethui()
+end
+
+ScreenGui2.Parent = gethui_2 or game:GetService("CoreGui")
+
+local TextButton = Instance.new("TextButton")
+
+TextButton.Size = UDim2.fromOffset(60, 60)
+TextButton.Position = UDim2.new(1, -80, 0.5, -30)
+TextButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TextButton.BackgroundTransparency = 0.3
+TextButton.Text = "AIM"
+TextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextButton.Font = Enum.Font.GothamBold
+TextButton.TextSize = 14
+TextButton.Visible = UserInputService.TouchEnabled
+TextButton.Parent = ScreenGui2
+
+local UICorner2 = Instance.new("UICorner")
+
+UICorner2.CornerRadius = UDim.new(1, 0)
+UICorner2.Parent = TextButton
+TextButton.MouseButton1Click:Connect(function()
+	t1.Aimbot = not t1.Aimbot
+
+	local v45 = TextButton
+	local Aimbot = t1.Aimbot
+
+	if not Aimbot then
+		v45.BackgroundColor3 = Aimbot or Color3.fromRGB(30, 30, 30)
+		v18("Aimbot", t1.Aimbot and "ON" or "OFF")
+
+		return
+	end
+
+	Aimbot = Color3.fromRGB(255, 60, 60)
+	v45.BackgroundColor3 = Aimbot or Color3.fromRGB(30, 30, 30)
+	v18("Aimbot", t1.Aimbot and "ON" or "OFF")
+end)
+
+local function v47()
+	local CurrentCamera = workspace.CurrentCamera
+
+	if CurrentCamera then
+		local vector2 = Vector2.new(CurrentCamera.ViewportSize.X / 2, CurrentCamera.ViewportSize.Y / 2)
+		local v50 = nil
+		local FOVRadius = t1.FOVRadius or 150
+		local v52 = Players
+		local v53 = v50
+
+		for _, player in ipairs(v52.GetPlayers(v52)) do
+			local v56
+
+			if player == LocalPlayer then
+				v56 = false
+			else
+				v56 = player.Character
+			end
+
+			if v56 then
+				local HumanoidRootPart2 = player.Character:FindFirstChild(t1.AimPart) or player.Character:FindFirstChild("HumanoidRootPart")
+				local Humanoid2 = player.Character:FindFirstChild("Humanoid")
+
+				if HumanoidRootPart2 then
+					if Humanoid2 then
+						Humanoid2 = Humanoid2.Health > 0
+					end
+				else
+					Humanoid2 = HumanoidRootPart2
+				end
+
+				if Humanoid2 then
+					local v59, v60 = CurrentCamera:WorldToViewportPoint(HumanoidRootPart2.Position)
+
+					if v60 then
+						local Magnitude = (Vector2.new(v59.X, v59.Y) - vector2).Magnitude
+
+						if Magnitude < FOVRadius then
+							if t1.Wallbang then
+								v53 = player
+								FOVRadius = Magnitude
+							else
+								local raycastParams = RaycastParams.new()
+
+								raycastParams.FilterDescendantsInstances = { Character }
+								raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+								local hit = workspace:Raycast(CurrentCamera.CFrame.Position, HumanoidRootPart2.Position - CurrentCamera.CFrame.Position, raycastParams)
+
+								if hit then
+									hit = not hit.Instance:IsDescendantOf(player.Character)
+								end
+
+								if not hit then
+									v53 = player
+									FOVRadius = Magnitude
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+
+		return v53
+	else
+		return nil
+	end
+end
+local function v64()
+	local v65 = Players
+
+	for _, player in ipairs(v65.GetPlayers(v65)) do
+		local v68 = player ~= LocalPlayer
+
+		if v68 then
+			v68 = player.Character
+		end
+
+		if v68 then
+			if t1.ESP then
+				local v69 = t2[player]
+
+				if v69 then
+					v69 = t2[player].Parent ~= player.Character
+				end
+
+				if v69 then
+					pcall(function()
+						t2[player]:Destroy()
+					end)
+					t2[player] = nil
+				end
+
+				if t2[player] then
+					t2[player].FillColor = t1.ESPColor
+
+					local v70 = t2[player]
+					local s1 = "DepthMode"
+					local Chams = t1.Chams
+
+					if Chams then
+						Chams = Enum.HighlightDepthMode.AlwaysOnTop
+					end
+
+					v70[s1] = Chams or Enum.HighlightDepthMode.Occluded
+				else
+					local Highlight = Instance.new("Highlight")
+
+					Highlight.FillColor = t1.ESPColor
+					Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+					Highlight.FillTransparency = 0.5
+
+					local s2 = "DepthMode"
+					local Chams = t1.Chams
+
+					if Chams then
+						Chams = Enum.HighlightDepthMode.AlwaysOnTop
+					end
+
+					Highlight[s2] = Chams or Enum.HighlightDepthMode.Occluded
+					Highlight.Parent = player.Character
+					t2[player] = Highlight
+				end
+
+				if t1.NameTags then
+					local Head = player.Character:FindFirstChild("Head")
+
+					if Head then
+						local KAT_NameTag = Head:FindFirstChild("KAT_NameTag")
+
+						if not KAT_NameTag then
+							KAT_NameTag = Instance.new("BillboardGui")
+							KAT_NameTag.Name = "KAT_NameTag"
+							KAT_NameTag.Size = UDim2.fromOffset(200, 50)
+							KAT_NameTag.StudsOffset = Vector3.new(0, 3, 0)
+							KAT_NameTag.AlwaysOnTop = true
+							KAT_NameTag.Parent = Head
+
+							local TextLabel = Instance.new("TextLabel")
+
+							TextLabel.Name = "Label"
+							TextLabel.Size = UDim2.fromScale(1, 1)
+							TextLabel.BackgroundTransparency = 1
+							TextLabel.TextColor3 = t1.ESPColor
+							TextLabel.TextStrokeTransparency = 0.5
+							TextLabel.Font = Enum.Font.GothamBold
+							TextLabel.TextSize = 14
+							TextLabel.Parent = KAT_NameTag
+						end
+
+						local Label = KAT_NameTag:FindFirstChild("Label")
+
+						if Label then
+							local Humanoid2 = player.Character:FindFirstChild("Humanoid")
+							local Position = HumanoidRootPart
+
+							if Position then
+								Position = Head.Position
+
+								if Position then
+									Position = (Head.Position - HumanoidRootPart.Position).Magnitude
+								end
+							end
+
+							local v82 = Position or 0
+							local s3 = "Text"
+							local Name = player.Name
+							local s4 = " ["
+							local v86 = math.floor(v82)
+							local s5 = "m]"
+
+							if Humanoid2 then
+								local Health = Humanoid2.Health
+
+								Humanoid2 = " HP:" .. math.floor(Health)
+							end
+
+							Label[s3] = Name .. s4 .. v86 .. s5 .. (Humanoid2 or "")
+							Label.TextColor3 = t1.ESPColor
+						end
+					end
+				elseif player.Character then
+					local ipairs_ = ipairs
+					local Character2 = player.Character
+
+					for _, descendant in ipairs_(Character2.GetDescendants(Character2)) do
+						if descendant.Name == "KAT_NameTag" then
+							pcall(function()
+								descendant:Destroy()
+							end)
+						end
+					end
+				end
+			else
+				if t2[player] then
+					local function v93()
+						t2[player]:Destroy()
+					end
+
+					pcall(v93)
+					t2[player] = nil
+				end
+
+				if player.Character then
+					local ipairs_ = ipairs
+					local Character2 = player.Character
+
+					for _, descendant in ipairs_(Character2.GetDescendants(Character2)) do
+						if descendant.Name == "KAT_NameTag" then
+							pcall(function()
+								descendant:Destroy()
+							end)
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+local uDim2 = UDim2.fromOffset(560, 500)
+local vector2 = Vector2.new(520, 400)
+local vector22 = Vector2.new(820, 640)
+local RightShift = Enum.KeyCode.RightShift
+local v102 = lib.CreateWindow(lib, {
+	Title = "العمدة RTA",
+	Icon = "sword",
+	Author = "العمدة RTA",
+	Folder = "KAT_WIND",
+	Size = uDim2,
+	MinSize = vector2,
+	MaxSize = vector22,
+	ToggleKey = RightShift,
+	Transparent = true,
+	Theme = "Dark",
+	Resizable = true,
+	SideBarWidth = 190,
+	HideSearchBar = true,
+	ScrollBarEnabled = true,
+	OpenButton = {
+		Title = "Open KAT",
+		CornerRadius = UDim.new(1, 0),
+		StrokeThickness = 2,
+		Enabled = true,
+		Draggable = true,
+		OnlyMobile = false,
+		Scale = 0.5,
+		Color = ColorSequence.new(Color3.fromHex("#30ff6a"), Color3.fromHex("#2b86c5"))
+	},
+	User = {
+		Enabled = true,
+		Anonymous = false,
+		Callback = function()
+			v18("Profile", LocalPlayer.Name)
+		end
+	}
+})
+local v103 = nil
+
+local function v104()
+	v103:Tag({
+		Title = "العمدة RTA",
+		Icon = "sword",
+		Color = Color3.fromHex("#30ff6a"),
+		Border = true
+	})
+end
+
+v103 = v102
+pcall(v104)
+
+local v105 = v103:Tab({
+	Title = "Home",
+	Icon = "home"
+})
+local v106 = v103:Tab({
+	Title = "Combat",
+	Icon = "crosshair"
+})
+local v107 = v103
+local v108 = v107.Tab(v107, {
+	Title = "Movement",
+	Icon = "zap"
+})
+local v109 = v103
+local v110 = v109.Tab(v109, {
+	Title = "Visuals",
+	Icon = "eye"
+})
+local v111 = v103:Tab({
+	Title = "Debug",
+	Icon = "bug"
+})
+local v112 = v105:Section({
+	Title = "Welcome",
+	Box = true,
+	Opened = true
+})
+
+v112:Paragraph({
+	Title = "Welcome to العمدة RTA!",
+	Desc = "A powerful utility script for Knife Ability Test. Includes Aimbot with FOV, Hitbox Expander, ESP, Movement hacks and more. Works on PC and Mobile."
+})
+v112:Paragraph({
+	Title = "Features",
+	Desc = "• Aimbot with FOV circle (PC + Mobile)\n• Hitbox Expander\n• Player ESP (highlight, tracers, names, HP)\n• WalkSpeed / JumpPower / Fly / Noclip / Infinite Jump\n• Anti-Void, BunnyHop\n• Config save/load"
+})
+
+local v113 = v105.Section(v105, {
+	Title = "Advertisement",
+	Box = true,
+	Opened = true
+})
+
+v113:Paragraph({
+	Title = "Lua Roblox Scripts",
+	Desc = "Subscribe to our Telegram channel for more scripts, updates and support!"
+})
+
+local t5 = {
+	Title = "Open Telegram Channel",
+	Desc = "https://discord.gg/rta",
+	Callback = function()
+		pcall(function()
+			setclipboard("https://discord.gg/rta")
+		end)
+		v18("RTA", "Link copied to clipboard!")
+	end
+}
+
+v113.Button(v113, t5)
+v113.Button(v113, {
+	Title = "Copy Link",
+	Callback = function()
+		pcall(function()
+			setclipboard("https://discord.gg/rta")
+		end)
+		v18("RTA", "Copied!")
+	end
+})
+
+local v115 = v106.Section(v106, {
+	Title = "Aimbot",
+	Box = true,
+	Opened = true
+})
+local t6 = {
+	Title = "Aimbot",
+	Desc = "Lock camera to enemy in FOV",
+	Value = false,
+	Callback = function(p4)
+		t1.Aimbot = p4
+		v37()
+		v18("Aimbot", p4 and "ON" or p4 or "OFF")
+	end
+}
+
+v115.Toggle(v115, t6)
+v115.Toggle(v115, {
+	Title = "Show FOV Circle",
+	Desc = "Display FOV circle on screen",
+	Value = true,
+	Callback = function(p5)
+		t1.ShowFOVCircle = p5
+		v37()
+	end
+})
+v115.Slider(v115, {
+	Title = "FOV Radius (px)",
+	Step = 5,
+	Value = {
+		Min = 30,
+		Max = 400,
+		Default = 150
+	},
+	Callback = function(p6)
+		t1.FOVRadius = p6
+		v37()
+	end
+})
+v115.Dropdown(v115, {
+	Title = "Aim Part",
+	Values = { "Head", "UpperTorso", "HumanoidRootPart" },
+	Value = "Head",
+	Callback = function(p7)
+		t1.AimPart = tostring(p7)
+	end
+})
+v115.Slider(v115, {
+	Title = "Smooth",
+	Step = 1,
+	Value = {
+		Min = 0,
+		Max = 20,
+		Default = 0
+	},
+	Callback = function(p8)
+		t1.AimSmooth = p8
+	end
+})
+v115.Toggle(v115, {
+	Title = "Wallbang",
+	Desc = "Aim through walls",
+	Value = false,
+	Callback = function(p9)
+		t1.Wallbang = p9
+	end
+})
+v115.Toggle(v115, {
+	Title = "Require Weapon",
+	Desc = "Aimbot only works if a weapon is equipped",
+	Value = true,
+	Callback = function(p10)
+		t1.AimbotRequireWeapon = p10
+	end
+})
+v115.Paragraph(v115, {
+	Title = "Behavior",
+	Desc = "Aimbot now locks only onto enemies in line of sight (not behind walls) by default. Enable Wallbang to override. Aimbot disables automatically if no weapon is equipped (when Require Weapon is on)."
+})
+v115.Paragraph(v115, {
+	Title = "Mobile",
+	Desc = "On mobile, a floating AIM button appears on screen. Tap to toggle aimbot."
+})
+
+local v117 = v106:Section({
+	Title = "Hitbox",
+	Box = true,
+	Opened = true
+})
+local v118 = v106.Section(v106, {
+	Title = "Weapon Mods",
+	Box = true,
+	Opened = true
+})
+local t7 = {
+	Title = "No Recoil / No Spread",
+	Desc = "Zero recoil & spread values",
+	Value = false,
+	Callback = function(p11)
+		t1.NoRecoil = p11
+
+		if not p11 then
+			v18("No Recoil", p11 and "ON" or "OFF")
+
+			return
+		end
+
+		v19()
+		v18("No Recoil", p11 and "ON" or "OFF")
+	end
+}
+
+v118.Toggle(v118, t7)
+v118.Button(v118, {
+	Title = "Patch Guns Now",
+	Desc = "Scan and zero recoil/spread values",
+	Callback = function()
+		v19()
+	end
+})
+v117.Toggle(v117, {
+	Title = "Hitbox Expander",
+	Desc = "Expand enemy hitboxes (client-side)",
+	Value = false,
+	Callback = function(p12)
+		t1.HitboxExpand = p12
+	end
+})
+v117.Slider(v117, {
+	Title = "Hitbox Size",
+	Step = 1,
+	Value = {
+		Min = 2,
+		Max = 30,
+		Default = 8
+	},
+	Callback = function(p13)
+		t1.HitboxSize = p13
+	end
+})
+
+local v120 = v108:Section({
+	Title = "Speed",
+	Box = true,
+	Opened = true
+})
+local t8 = {
+	Title = "WalkSpeed",
+	Step = 1,
+	Value = {
+		Min = 16,
+		Max = 500,
+		Default = 16
+	},
+	Callback = function(p14)
+		t1.WalkSpeed = p14
+
+		if not Humanoid then
+			return
+		end
+
+		Humanoid.WalkSpeed = p14
+	end
+}
+
+v120.Slider(v120, t8)
+
+local t9 = {
+	Title = "JumpPower",
+	Step = 1,
+	Value = {
+		Min = 50,
+		Max = 500,
+		Default = 50
+	},
+	Callback = function(p15)
+		t1.JumpPower = p15
+
+		if not Humanoid then
+			return
+		end
+
+		Humanoid.JumpPower = p15
+	end
+}
+
+v120.Slider(v120, t9)
+v120.Slider(v120, {
+	Title = "FOV",
+	Step = 1,
+	Value = {
+		Min = 60,
+		Max = 120,
+		Default = 70
+	},
+	Callback = function(p16)
+		t1.FOV = p16
+
+		local CurrentCamera = workspace.CurrentCamera
+
+		if not CurrentCamera then
+			return
+		end
+
+		CurrentCamera.FieldOfView = p16
+	end
+})
+
+local v124 = v108:Section({
+	Title = "Hacks",
+	Box = true,
+	Opened = true
+})
+
+v124.Toggle(v124, {
+	Title = "Infinite Jump",
+	Value = false,
+	Callback = function(p17)
+		t1.InfiniteJump = p17
+	end
+})
+v124.Toggle(v124, {
+	Title = "Fly",
+	Value = false,
+	Callback = function(p18)
+		t1.Fly = p18
+	end
+})
+
+local t10 = {
+	Title = "Noclip",
+	Value = false,
+	Callback = function(p19)
+		t1.Noclip = p19
+
+		local v126 = not p19
+
+		if v126 then
+			v126 = Character
+		end
+
+		if not v126 then
+			return
+		end
+
+		local v127 = Character
+
+		for _, descendant in ipairs(v127.GetDescendants(v127)) do
+			if descendant:IsA("BasePart") then
+				descendant.CanCollide = true
+			end
+		end
+	end
+}
+
+v124.Toggle(v124, t10)
+v124.Toggle(v124, {
+	Title = "Anti-Void",
+	Desc = "Teleport up if falling",
+	Value = false,
+	Callback = function(p20)
+		t1.AntiVoid = p20
+	end
+})
+v124:Toggle({
+	Title = "BunnyHop",
+	Desc = "Auto jump",
+	Value = false,
+	Callback = function(p21)
+		t1.BunnyHop = p21
+	end
+})
+
+local v130 = v110:Section({
+	Title = "ESP",
+	Box = true,
+	Opened = true
+})
+
+v130.Toggle(v130, {
+	Title = "Player ESP",
+	Value = false,
+	Callback = function(p22)
+		t1.ESP = p22
+	end
+})
+v130.Dropdown(v130, {
+	Title = "ESP Color",
+	Values = {
+		"Red",
+		"Green",
+		"Blue",
+		"Yellow",
+		"White",
+		"Pink"
+	},
+	Value = "Red",
+	Callback = function(p23)
+		t1.ESPColor = ({
+			Red = Color3.fromRGB(255, 60, 60),
+			Green = Color3.fromRGB(60, 255, 60),
+			Blue = Color3.fromRGB(60, 60, 255),
+			Yellow = Color3.fromRGB(255, 255, 60),
+			White = Color3.fromRGB(255, 255, 255),
+			Pink = Color3.fromRGB(255, 60, 200)
+		})[tostring(p23)] or t1.ESPColor
+	end
+})
+v130.Toggle(v130, {
+	Title = "Tracers",
+	Value = false,
+	Callback = function(p24)
+		t1.Tracers = p24
+	end
+})
+v130.Toggle(v130, {
+	Title = "Name Tags",
+	Desc = "Name + distance + HP",
+	Value = true,
+	Callback = function(p25)
+		t1.NameTags = p25
+	end
+})
+v130.Toggle(v130, {
+	Title = "Health Bar",
+	Value = true,
+	Callback = function(p26)
+		t1.HealthBar = p26
+	end
+})
+v130.Toggle(v130, {
+	Title = "Chams",
+	Desc = "Highlight through walls",
+	Value = false,
+	Callback = function(p27)
+		t1.Chams = p27
+	end
+})
+
+local v131 = v111:Section({
+	Title = "Diagnostics",
+	Box = true,
+	Opened = true
+})
+local t11 = {
+	Title = "Print State",
+	Callback = function()
+		local function v133()
+			local t12 = {}
+
+			for k, v in pairs(t1) do
+				if typeof(v) == "Color3" then
+					t12[k] = {
+						R = v.R,
+						G = v.G,
+						B = v.B
+					}
+				else
+					t12[k] = v
+				end
+			end
+
+			return HttpService:JSONEncode(t12)
+		end
+
+		local ok, result = pcall(v133)
+
+		if ok then
+			print("[KAT] State:", result)
+		else
+			print("[KAT] State encode failed:", result)
+		end
+
+		v18("Debug", "Printed (F9)")
+	end
+}
+
+v131.Button(v131, t11)
+
+local t13 = {
+	Title = "Inspect Equipped Tool",
+	Desc = "Print tool children & attributes",
+	Callback = function()
+		local Tool = Character
+
+		if Tool then
+			Tool = Character:FindFirstChildOfClass("Tool")
+		end
+
+		local GetAttributes, v142, v143, v144, v145
+
+		if Tool then
+			if Tool then
+				print("[KAT] Tool:", Tool.Name, Tool.ClassName)
+				print("[KAT] Attributes:")
+				GetAttributes = Tool.GetAttributes
+				v142, v143, v144 = pairs(GetAttributes(Tool))
+
+				while true do
+					v144, v145 = v142(v143, v144)
+
+					if not v144 then
+						break
+					end
+
+					print("  " .. v144 .. " = " .. tostring(v145))
+				end
+
+				print("[KAT] Children:")
+
+				for _, descendant in ipairs(Tool.GetDescendants(Tool)) do
+					print("  - " .. descendant:GetFullName() .. " (" .. descendant.ClassName .. ")")
+				end
+
+				v18("Debug", "Tool inspected (F9)")
+			else
+				v18("Debug", "No tool found")
+			end
+
+			return
+		end
+
+		local Backpack = LocalPlayer:FindFirstChild("Backpack")
+
+		if not Backpack then
+			if Tool then
+				print("[KAT] Tool:", Tool.Name, Tool.ClassName)
+				print("[KAT] Attributes:")
+				GetAttributes = Tool.GetAttributes
+				v142, v143, v144 = pairs(GetAttributes(Tool))
+
+				while true do
+					v144, v145 = v142(v143, v144)
+
+					if not v144 then
+						break
+					end
+
+					print("  " .. v144 .. " = " .. tostring(v145))
+				end
+
+				print("[KAT] Children:")
+
+				for _, descendant in ipairs(Tool.GetDescendants(Tool)) do
+					print("  - " .. descendant:GetFullName() .. " (" .. descendant.ClassName .. ")")
+				end
+
+				v18("Debug", "Tool inspected (F9)")
+			else
+				v18("Debug", "No tool found")
+			end
+
+			return
+		end
+
+		Tool = Backpack:FindFirstChildOfClass("Tool")
+
+		if Tool then
+			print("[KAT] Tool:", Tool.Name, Tool.ClassName)
+			print("[KAT] Attributes:")
+			GetAttributes = Tool.GetAttributes
+			v142, v143, v144 = pairs(GetAttributes(Tool))
+
+			while true do
+				v144, v145 = v142(v143, v144)
+
+				if not v144 then
+					break
+				end
+
+				print("  " .. v144 .. " = " .. tostring(v145))
+			end
+
+			print("[KAT] Children:")
+
+			for _, descendant in ipairs(Tool.GetDescendants(Tool)) do
+				print("  - " .. descendant:GetFullName() .. " (" .. descendant.ClassName .. ")")
+			end
+
+			v18("Debug", "Tool inspected (F9)")
+		else
+			v18("Debug", "No tool found")
+		end
+	end
+}
+
+v131.Button(v131, t13)
+
+local t14 = {
+	Title = "Scan Remotes",
+	Desc = "List RemoteEvents/Functions",
+	Callback = function()
+		local t15 = {}
+
+		for _, v in ipairs({ ReplicatedStorage, workspace }) do
+			for _, descendant in ipairs(v.GetDescendants(v)) do
+				if descendant:IsA("RemoteEvent") or descendant:IsA("RemoteFunction") then
+					table.insert(t15, descendant:GetFullName())
+				end
+			end
+		end
+
+		print("[KAT] Remotes (" .. #t15 .. "):")
+
+		for _, v in ipairs(t15) do
+			print("  - " .. v)
+		end
+
+		v18("Debug", #t15 .. " remotes (F9)")
+	end
+}
+
+v131.Button(v131, t14)
+RunService.RenderStepped:Connect(function()
+	local n2 = 15548269
+	local v162 = not (Character and Character.Parent)
+
+	if v162 then
+		v162 = LocalPlayer.Character
+	end
+
+	if v162 then
+		n2 = LocalPlayer.Character
+		Character = n2
+	end
+
+	if Character then
+		if not (Humanoid and Humanoid.Parent) then
+			Humanoid = Character:FindFirstChildOfClass("Humanoid")
+		end
+
+		if not (HumanoidRootPart and HumanoidRootPart.Parent) then
+			HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+		end
+	end
+
+	if Humanoid then
+		Humanoid.WalkSpeed = t1.WalkSpeed
+		Humanoid.JumpPower = t1.JumpPower
+
+		if t1.NoRecoil then
+			Humanoid.CameraOffset = Vector3.zero
+		end
+	end
+
+	local CurrentCamera = workspace.CurrentCamera
+
+	if CurrentCamera then
+		CurrentCamera.FieldOfView = t1.FOV
+	end
+
+	v37()
+
+	local function v164()
+		local v165 = TextButton
+		local Aimbot = t1.Aimbot
+
+		if not Aimbot then
+			v165.BackgroundColor3 = Aimbot or Color3.fromRGB(30, 30, 30)
+
+			return
+		end
+
+		Aimbot = Color3.fromRGB(255, 60, 60)
+		v165.BackgroundColor3 = Aimbot or Color3.fromRGB(30, 30, 30)
+	end
+
+	pcall(v164)
+
+	local Aimbot = t1.Aimbot
+
+	if Aimbot then
+		Aimbot = not t1.AimbotRequireWeapon or v14()
+	end
+
+	if Aimbot then
+		local v168 = v47()
+		local Character2
+
+		if v168 then
+			Character2 = v168.Character
+		else
+			Character2 = v168
+		end
+
+		if Character2 then
+			local HumanoidRootPart2 = v168.Character:FindFirstChild(t1.AimPart) or v168.Character:FindFirstChild("HumanoidRootPart")
+			local v171
+
+			if HumanoidRootPart2 then
+				if CurrentCamera then
+					v171 = HumanoidRootPart2.Position ~= CurrentCamera.CFrame.Position
+				else
+					v171 = CurrentCamera
+				end
+			else
+				v171 = HumanoidRootPart2
+			end
+
+			if v171 then
+				local cFrame = CFrame.new(CurrentCamera.CFrame.Position, HumanoidRootPart2.Position)
+				local AimSmooth = t1.AimSmooth
+
+				if AimSmooth then
+					AimSmooth = t1.AimSmooth > 0
+				end
+
+				if AimSmooth then
+					CurrentCamera.CFrame = CurrentCamera.CFrame:Lerp(cFrame, 1 / (t1.AimSmooth + 1))
+				else
+					CurrentCamera.CFrame = cFrame
+				end
+			end
+		end
+	end
+
+	local Fly = t1.Fly
+
+	if Fly then
+		Fly = HumanoidRootPart and CurrentCamera
+	end
+
+	if Fly then
+		local vector3 = Vector3.zero
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			vector3 = vector3 + CurrentCamera.CFrame.LookVector
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			vector3 = vector3 - CurrentCamera.CFrame.LookVector
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			vector3 = vector3 - CurrentCamera.CFrame.RightVector
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			vector3 = vector3 + CurrentCamera.CFrame.RightVector
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			vector3 = vector3 + Vector3.new(0, 1, 0)
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+			vector3 = vector3 - Vector3.new(0, 1, 0)
+		end
+
+		HumanoidRootPart.Velocity = vector3 * 60
+	end
+
+	if t1.HitboxExpand then
+		local v176 = Players
+
+		for _, player in ipairs(v176.GetPlayers(v176)) do
+			local v179
+
+			if player == LocalPlayer then
+				v179 = false
+			else
+				v179 = player.Character
+			end
+
+			if v179 then
+				local HumanoidRootPart2 = player.Character:FindFirstChild("HumanoidRootPart")
+
+				if HumanoidRootPart2 then
+					HumanoidRootPart2.Size = Vector3.new(t1.HitboxSize, t1.HitboxSize, t1.HitboxSize)
+					HumanoidRootPart2.Transparency = 0.7
+					HumanoidRootPart2.CanCollide = false
+				end
+			end
+		end
+	else
+		local v181 = Players
+
+		for _, player in ipairs(v181.GetPlayers(v181)) do
+			local v184
+
+			if player == LocalPlayer then
+				v184 = false
+			else
+				v184 = player.Character
+			end
+
+			if v184 then
+				local HumanoidRootPart2 = player.Character:FindFirstChild("HumanoidRootPart")
+
+				if HumanoidRootPart2 then
+					HumanoidRootPart2.Size = Vector3.new(2, 2, 1)
+					HumanoidRootPart2.Transparency = 1
+					HumanoidRootPart2.CanCollide = true
+				end
+			end
+		end
+	end
+
+	local AntiVoid = t1.AntiVoid
+
+	if AntiVoid then
+		AntiVoid = HumanoidRootPart
+
+		if AntiVoid then
+			AntiVoid = HumanoidRootPart.Position.Y < -50
+		end
+	end
+
+	if AntiVoid then
+		HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position.X, 50, HumanoidRootPart.Position.Z)
+	end
+
+	local BunnyHop = t1.BunnyHop
+
+	if BunnyHop then
+		BunnyHop = Humanoid
+	end
+
+	if not (BunnyHop and Humanoid.FloorMaterial ~= Enum.Material.Air) then
+		return
+	end
+
+	Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+end)
+UserInputService.JumpRequest:Connect(function()
+	local InfiniteJump = t1.InfiniteJump
+
+	if InfiniteJump then
+		InfiniteJump = Humanoid
+	end
+
+	if not InfiniteJump then
+		return
+	end
+
+	Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+end)
+RunService.Stepped:Connect(function()
+	local Noclip = t1.Noclip
+
+	if Noclip then
+		Noclip = Character
+	end
+
+	if not Noclip then
+		return
+	end
+
+	local v190 = Character
+
+	for _, descendant in ipairs(v190.GetDescendants(v190)) do
+		if descendant:IsA("BasePart") then
+			descendant.CanCollide = false
+		end
+	end
+end)
+RunService.Heartbeat:Connect(function()
+	pcall(v64)
+end)
+
+local v193 = v18
+local Humanoid2 = Humanoid
+
+for _, player in ipairs(Players:GetPlayers()) do
+	player.CharacterAdded:Connect(function()
+		if not t2[player] then
+			return
+		end
+
+		pcall(function()
+			t2[player]:Destroy()
+		end)
+		t2[player] = nil
+	end)
+end
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function()
+		if not t2[player] then
+			return
+		end
+
+		local function v197()
+			t2[player]:Destroy()
+		end
+
+		pcall(v197)
+		t2[player] = nil
+	end)
+end)
+Players.PlayerRemoving:Connect(function(player)
+	if not t2[player] then
+		return
+	end
+
+	pcall(function()
+		t2[player]:Destroy()
+	end)
+	t2[player] = nil
+end)
+LocalPlayer.CharacterAdded:Connect(function(character)
+	task.wait(1)
+	Humanoid2 = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid")
+
+	if not character:FindFirstChild("HumanoidRootPart") then
+		character:WaitForChild("HumanoidRootPart")
+	end
+
+	if not Humanoid2 then
+		return
+	end
+
+	Humanoid2.WalkSpeed = t1.WalkSpeed
+	Humanoid2.JumpPower = t1.JumpPower
+end)
+v193("العمدة RTA", "Loaded. RightShift to toggle. RTA: t.me/LuaRobloxScripts")
