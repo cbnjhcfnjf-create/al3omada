@@ -1,4 +1,4 @@
--- This file was generated at discord.gg/syncrypt
+-- This file was generated at discord.gg/rta
 
 local game_ = game
 local v2 = game_.GetService(game_, "CoreGui")
