@@ -1,0 +1,511 @@
+-- This file was generated at discord.gg/syncrypt
+
+local game_ = game
+local v2 = game_.GetService(game_, "CoreGui")
+
+if v2:FindFirstChild("العمدة RTA") then
+	v2["العمدة RTA"]:Destroy()
+end
+
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local CurrentCamera = Workspace.CurrentCamera
+local TouchEnabled = UserInputService.TouchEnabled
+
+if TouchEnabled then
+	TouchEnabled = not UserInputService.KeyboardEnabled
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+
+ScreenGui.Name = "العمدة RTA"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = v2
+
+local Frame = Instance.new("Frame")
+
+Frame.Name = "MsgFrame"
+Frame.Size = UDim2.new(0, 320, 0, 210)
+Frame.Position = UDim2.new(0.5, -160, 0.5, -105)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = Frame
+
+local UIStroke = Instance.new("UIStroke")
+
+UIStroke.Color = Color3.fromRGB(0, 120, 255)
+UIStroke.Transparency = 0.3
+UIStroke.Thickness = 2
+UIStroke.Parent = Frame
+
+local TextLabel = Instance.new("TextLabel")
+
+TextLabel.Size = UDim2.new(1, 0, 0, 35)
+TextLabel.BackgroundTransparency = 1
+TextLabel.Text = "قراءة الحقوق"
+TextLabel.TextColor3 = Color3.fromRGB(0, 150, 255)
+TextLabel.TextSize = 14
+TextLabel.Font = Enum.Font.GothamBold
+TextLabel.Parent = Frame
+
+local TextLabel2 = Instance.new("TextLabel")
+
+TextLabel2.Size = UDim2.new(0.9, 0, 0, 100)
+TextLabel2.Position = UDim2.new(0.05, 0, 0, 35)
+TextLabel2.BackgroundTransparency = 1
+TextLabel2.Text = "RTA: هذا السكريبت من العمدة RTA\n\nالسيرفر: Discord العمدة RTA."
+TextLabel2.TextColor3 = Color3.fromRGB(220, 220, 220)
+TextLabel2.TextSize = 11
+TextLabel2.Font = Enum.Font.Gotham
+TextLabel2.TextWrapped = true
+TextLabel2.TextXAlignment = Enum.TextXAlignment.Center
+TextLabel2.Parent = Frame
+
+local TextButton = Instance.new("TextButton")
+
+TextButton.Size = UDim2.new(0.9, 0, 0, 35)
+TextButton.Position = UDim2.new(0.05, 0, 0, 150)
+TextButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+TextButton.Text = "حسناً"
+TextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextButton.TextSize = 12
+TextButton.Font = Enum.Font.GothamBold
+TextButton.Parent = Frame
+Instance.new("UICorner", TextButton).CornerRadius = UDim.new(0, 8)
+
+local Frame2 = Instance.new("Frame")
+
+Frame2.Name = "MainFrame"
+Frame2.Size = UDim2.new(0, 280, 0, 180)
+Frame2.Position = UDim2.new(0.1, 0, 0.1, 0)
+Frame2.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+Frame2.BorderSizePixel = 0
+Frame2.Active = true
+Frame2.Draggable = true
+Frame2.Visible = false
+Frame2.Parent = ScreenGui
+
+local UICorner2 = Instance.new("UICorner")
+
+UICorner2.CornerRadius = UDim.new(0, 10)
+UICorner2.Parent = Frame2
+
+local UIStroke2 = Instance.new("UIStroke")
+
+UIStroke2.Color = Color3.fromRGB(0, 120, 255)
+UIStroke2.Transparency = 0.5
+UIStroke2.Thickness = 1.5
+UIStroke2.Parent = Frame2
+
+local TextLabel3 = Instance.new("TextLabel")
+
+TextLabel3.Size = UDim2.new(1, 0, 0, 30)
+TextLabel3.BackgroundTransparency = 1
+TextLabel3.Text = "العمدة RTA"
+TextLabel3.TextColor3 = Color3.fromRGB(0, 150, 255)
+TextLabel3.TextSize = 13
+TextLabel3.Font = Enum.Font.GothamBold
+TextLabel3.Parent = Frame2
+
+local TextButton2 = Instance.new("TextButton")
+
+TextButton2.Name = "ToggleButton"
+TextButton2.Size = UDim2.new(0, 40, 0, 40)
+TextButton2.Position = UDim2.new(0.05, 0, 0.02, 0)
+TextButton2.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TextButton2.Text = "K"
+TextButton2.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextButton2.TextSize = 16
+TextButton2.Font = Enum.Font.GothamBold
+TextButton2.Active = true
+TextButton2.Draggable = true
+TextButton2.Visible = false
+TextButton2.Parent = ScreenGui
+
+local UICorner3 = Instance.new("UICorner")
+
+UICorner3.CornerRadius = UDim.new(0, 8)
+UICorner3.Parent = TextButton2
+TextButton2.MouseButton1Click:Connect(function()
+	Frame2.Visible = not Frame2.Visible
+end)
+
+local TextButton3 = Instance.new("TextButton")
+
+TextButton3.Name = "DetectBtn"
+TextButton3.Size = UDim2.new(0, 256, 0, 36)
+TextButton3.Position = UDim2.new(0, 12, 0, 38)
+TextButton3.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+TextButton3.Text = "كشف الضبان: مغلق"
+TextButton3.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextButton3.TextSize = 11
+TextButton3.Font = Enum.Font.GothamBold
+TextButton3.Parent = Frame2
+Instance.new("UICorner", TextButton3).CornerRadius = UDim.new(0, 7)
+
+local TextButton4 = Instance.new("TextButton")
+
+TextButton4.Name = "NightVisionBtn"
+TextButton4.Size = UDim2.new(0, 256, 0, 36)
+TextButton4.Position = UDim2.new(0, 12, 0, 82)
+TextButton4.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+TextButton4.Text = "الرؤية الليلية: مغلق"
+TextButton4.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextButton4.TextSize = 11
+TextButton4.Font = Enum.Font.GothamBold
+TextButton4.Parent = Frame2
+Instance.new("UICorner", TextButton4).CornerRadius = UDim.new(0, 7)
+
+local TextButton5 = Instance.new("TextButton")
+
+TextButton5.Name = "AimBotBtn"
+TextButton5.Size = UDim2.new(0, 256, 0, 36)
+TextButton5.Position = UDim2.new(0, 12, 0, 126)
+TextButton5.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+TextButton5.Text = "أيم بوت: مغلق"
+TextButton5.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextButton5.TextSize = 11
+TextButton5.Font = Enum.Font.GothamBold
+TextButton5.Parent = Frame2
+Instance.new("UICorner", TextButton5).CornerRadius = UDim.new(0, 7)
+TextButton.MouseButton1Click:Connect(function()
+	Frame.Visible = false
+	Frame2.Visible = true
+	TextButton2.Visible = true
+end)
+
+local u25 = false
+local u26 = false
+local u27 = false
+local t1 = {}
+local ColorCorrectionEffect = Instance.new("ColorCorrectionEffect")
+
+ColorCorrectionEffect.Name = "RTANaturalNightVision"
+ColorCorrectionEffect.Enabled = false
+ColorCorrectionEffect.Brightness = 0.12
+ColorCorrectionEffect.Contrast = 0.05
+ColorCorrectionEffect.Saturation = 0.1
+ColorCorrectionEffect.Parent = game:GetService("Lighting")
+
+local function v30(p1)
+	local GetAttributes = p1.GetAttributes
+
+	for k, v in pairs(GetAttributes(p1)) do
+		local v34 = string.lower(k)
+
+		if (string.find(v34, "weight") or (string.find(v34, "وزن") or string.find(v34, "mass"))) and type(v) == "number" then
+			return math.floor(v)
+		end
+	end
+
+	local Hitbox = p1:FindFirstChild("Hitbox")
+	local v36, isBasePart, clamp, v39
+
+	if not Hitbox then
+		v45 = p1.GetDescendants
+
+		for _, v in ipairs(v45(p1)) do
+			if v:IsA("NumberValue") or v:IsA("IntValue") then
+				v36 = string.lower(v.Name)
+
+				if string.find(v36, "weight") or (string.find(v36, "وزن") or (string.find(v36, "mass") or string.find(v36, "w"))) then
+					return math.floor(v.Value)
+				end
+			end
+		end
+
+		if Hitbox then
+			isBasePart = Hitbox:IsA("BasePart")
+		else
+			isBasePart = Hitbox
+		end
+
+		if isBasePart then
+			clamp = math.clamp
+			v39 = Hitbox.Size.X + Hitbox.Size.Y + Hitbox.Size.Z
+
+			return clamp(math.floor(v39), 1, 100)
+		else
+			return 5
+		end
+	end
+
+	for k, v in pairs(Hitbox.GetAttributes(Hitbox)) do
+		local v44 = string.lower(k)
+
+		if (string.find(v44, "weight") or (string.find(v44, "وزن") or string.find(v44, "mass"))) and type(v) == "number" then
+			return math.floor(v)
+		end
+	end
+
+	local GetDescendants = p1.GetDescendants
+
+	for _, v in ipairs(GetDescendants(p1)) do
+		if v:IsA("NumberValue") or v:IsA("IntValue") then
+			v36 = string.lower(v.Name)
+
+			if string.find(v36, "weight") or (string.find(v36, "وزن") or (string.find(v36, "mass") or string.find(v36, "w"))) then
+				return math.floor(v.Value)
+			end
+		end
+	end
+
+	if Hitbox then
+		isBasePart = Hitbox:IsA("BasePart")
+	else
+		isBasePart = Hitbox
+	end
+
+	if isBasePart then
+		clamp = math.clamp
+		v39 = Hitbox.Size.X + Hitbox.Size.Y + Hitbox.Size.Z
+
+		return clamp(math.floor(v39), 1, 100)
+	else
+		return 5
+	end
+end
+local function v48()
+	local DhabWild = Workspace:FindFirstChild("DhabWild")
+
+	if DhabWild then
+		local GetChildren = DhabWild.GetChildren
+		local v51 = -math.huge
+		local v52 = nil
+
+		for _, v in ipairs(GetChildren(DhabWild)) do
+			local Hitbox = v:FindFirstChild("Hitbox")
+
+			if Hitbox then
+				Hitbox = Hitbox:IsA("BasePart")
+			end
+
+			if Hitbox then
+				local v56 = v30(v)
+
+				if v51 < v56 then
+					v52 = v
+					v51 = v56
+				end
+			end
+		end
+
+		return v52
+	else
+		return nil
+	end
+end
+local function v57()
+	for _, v in pairs(t1) do
+		if v.highlight then
+			v.highlight:Destroy()
+		end
+
+		if v.billboard then
+			v.billboard:Destroy()
+		end
+	end
+
+	t1 = {}
+end
+
+TextButton3.MouseButton1Click:Connect(function()
+	u25 = not u25
+
+	if u25 then
+		TextButton3.Text = "كشف الضبان: شغال"
+		TextButton3.BackgroundColor3 = Color3.fromRGB(30, 140, 255)
+	else
+		TextButton3.Text = "كشف الضبان: مغلق"
+		TextButton3.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+		v57()
+	end
+end)
+TextButton4.MouseButton1Click:Connect(function()
+	u26 = not u26
+
+	if u26 then
+		TextButton4.Text = "الرؤية الليلية: شغال"
+		TextButton4.BackgroundColor3 = Color3.fromRGB(30, 140, 255)
+		ColorCorrectionEffect.Enabled = true
+	else
+		TextButton4.Text = "الرؤية الليلية: مغلق"
+		TextButton4.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+		ColorCorrectionEffect.Enabled = false
+	end
+end)
+TextButton5.MouseButton1Click:Connect(function()
+	u27 = not u27
+
+	if u27 then
+		TextButton5.Text = "أيم بوت: شغال"
+		TextButton5.BackgroundColor3 = Color3.fromRGB(30, 140, 255)
+	else
+		TextButton5.Text = "أيم بوت: مغلق"
+		TextButton5.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+	end
+end)
+
+local u60 = nil
+
+local function v61()
+	u60 = u60 + 1
+
+	local v62 = TouchEnabled
+
+	if v62 then
+		v62 = u60 % 2 ~= 0
+
+		if v62 then
+			v62 = not u25
+
+			if v62 then
+				v62 = not u27
+			end
+		end
+	end
+
+	if v62 then
+		return
+	end
+
+	if u25 then
+		local Character = LocalPlayer.Character
+
+		if Character then
+			Character = Character:FindFirstChild("HumanoidRootPart")
+		end
+
+		local DhabWild = Workspace:FindFirstChild("DhabWild")
+
+		if Character and DhabWild then
+			local GetChildren = DhabWild.GetChildren
+			local t2 = {}
+
+			for _, v in ipairs(GetChildren(DhabWild)) do
+				local Hitbox = v:FindFirstChild("Hitbox")
+				local isBasePart
+
+				if Hitbox then
+					isBasePart = Hitbox:IsA("BasePart")
+				else
+					isBasePart = Hitbox
+				end
+
+				if isBasePart then
+					local t3 = {
+						model = v,
+						hitbox = Hitbox,
+						dist = (Character.Position - Hitbox.Position).Magnitude
+					}
+
+					table.insert(t2, t3)
+				end
+			end
+
+			table.sort(t2, function(p2, p3)
+				return p2.dist < p3.dist
+			end)
+
+			local v72 = TouchEnabled and 10 or 20
+			local v73 = #t2
+			local t4 = {}
+
+			for i = 1, math.min(v72, v73) do
+				local v76 = t2[i]
+				local model = v76.model
+				local hitbox = v76.hitbox
+
+				t4[model] = true
+
+				local v79 = v30(model)
+
+				if not t1[model] then
+					local Highlight = Instance.new("Highlight")
+
+					Highlight.Name = "DhabESP"
+					Highlight.FillColor = Color3.fromRGB(0, 255, 255)
+					Highlight.FillTransparency = 0.3
+					Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+					Highlight.OutlineTransparency = 0
+					Highlight.Parent = model
+
+					local BillboardGui = Instance.new("BillboardGui")
+
+					BillboardGui.Name = "DhabTag"
+					BillboardGui.Size = UDim2.new(0, 180, 0, 35)
+					BillboardGui.StudsOffset = Vector3.new(0, 3, 0)
+					BillboardGui.AlwaysOnTop = true
+					BillboardGui.Parent = hitbox
+
+					local TextLabel4 = Instance.new("TextLabel")
+
+					TextLabel4.Size = UDim2.new(1, 0, 1, 0)
+					TextLabel4.BackgroundTransparency = 1
+					TextLabel4.TextColor3 = Color3.fromRGB(255, 255, 0)
+					TextLabel4.TextSize = 14
+					TextLabel4.Font = Enum.Font.GothamBold
+					TextLabel4.TextStrokeTransparency = 0
+					TextLabel4.TextWrapped = true
+					TextLabel4.Parent = BillboardGui
+					t1[model] = {
+						highlight = Highlight,
+						billboard = BillboardGui,
+						label = TextLabel4
+					}
+				end
+
+				local label = t1[model]
+
+				if label then
+					label = t1[model].label
+				end
+
+				if label then
+					t1[model].label.Text = "وزنه: " .. v79
+				end
+			end
+
+			for k, v in pairs(t1) do
+				if not (t4[k] and k.Parent) then
+					if v.highlight then
+						v.highlight:Destroy()
+					end
+
+					if v.billboard then
+						v.billboard:Destroy()
+					end
+
+					t1[k] = nil
+				end
+			end
+		end
+	else
+		v57()
+	end
+
+	if not u27 then
+		return
+	end
+
+	local v86 = v48()
+	local Hitbox = v86 and v86:FindFirstChild("Hitbox")
+
+	if not Hitbox then
+		return
+	end
+
+	CurrentCamera.CFrame = CFrame.new(CurrentCamera.CFrame.Position, Hitbox.Position)
+end
+
+u60 = 0
+RunService.Heartbeat:Connect(v61)
